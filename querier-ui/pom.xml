@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.aytmatech</groupId>
+        <artifactId>querier</artifactId>
+        <version>0.1.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>querier-ui</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Querier UI</name>
+    <description>
+        Server-side dashboard and Chart.js rendering for Querier.
+        Depends on querier-core — including this artifact gives you
+        both core SQL building and dashboard generation.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.aytmatech</groupId>
+            <artifactId>querier-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
