@@ -1,6 +1,7 @@
 # Querier
 
-A **type-safe Java SQL query builder library** that helps you construct SQL queries using the Builder pattern with method references for compile-time safety.
+A **type-safe Java SQL query builder library** that helps you construct SQL queries using the Builder
+pattern with method references for compile-time safety.
 
 ## Features
 
@@ -11,31 +12,72 @@ A **type-safe Java SQL query builder library** that helps you construct SQL quer
 - ✅ **JPA Compatible**: Supports both custom annotations and standard JPA annotations (`jakarta.persistence` or `javax.persistence`)
 - ✅ **Zero runtime dependencies**: Lightweight library with no external dependencies (JPA is optional)
 - ✅ **Java 17+**: Built with modern Java features
+- ✅ **Server-side Dashboards** *(optional)*: Generate Chart.js-powered HTML dashboards directly from your Querier queries — no JavaScript required
 
 ## Requirements
 
 - **Java 17** or higher
-- **Maven 3.6+** (for building from source)
+- **Maven 3.8.1+** (for building from source)
+
+---
+
+## Modules
+
+Querier is structured as a multi-module library published under a single version.
+You only pull in what you need.
+
+| Artifact | Description | Required |
+|---|---|---|
+| `querier-core` | Type-safe SQL query builder — all core features | ✅ Always |
+| `querier-ui` | Server-side dashboard & Chart.js rendering | ➕ Optional |
+
+> **Note:** `querier-ui` declares `querier-core` as a transitive dependency.
+> If you add `querier-ui`, you do **not** need to declare `querier-core` separately.
+
+---
 
 ## Installation
 
-### Maven
+Replace `QUERIER_VERSION` with the [latest release version](https://github.com/AytmaTech/querier/releases).
 
-Add the following to your `pom.xml`:
+### Core only — SQL query building
 
+#### Maven
 ```xml
 <dependency>
     <groupId>com.aytmatech</groupId>
-    <artifactId>querier</artifactId>
-    <version>${querier.version}</version>
+    <artifactId>querier-core</artifactId>
+    <version>QUERIER_VERSION</version>
 </dependency>
 ```
 
-### Gradle
-
+#### Gradle
 ```gradle
-implementation 'com.aytmatech:querier:$querierVersion'
+implementation 'com.aytmatech:querier-core:QUERIER_VERSION'
 ```
+
+---
+
+### Core + Dashboards UI *(optional)*
+
+Add `querier-ui` when you also want server-side dashboard generation powered by Chart.js.
+`querier-core` is included transitively — no need to declare both.
+
+#### Maven
+```xml
+<dependency>
+    <groupId>com.aytmatech</groupId>
+    <artifactId>querier-ui</artifactId>
+    <version>QUERIER_VERSION</version>
+</dependency>
+```
+
+#### Gradle
+```gradle
+implementation 'com.aytmatech:querier-ui:QUERIER_VERSION'
+```
+
+---
 
 ## Quick Start
 
@@ -127,6 +169,8 @@ Query nativeQuery = em.createNativeQuery(sp.sql(), Tuple.class);
 sp.params().forEach(nativeQuery::setParameter);
 List<?> rows = nativeQuery.getResultList();
 ```
+
+---
 
 ## Framework Compatibility
 
@@ -264,6 +308,8 @@ log.debug("Executing query: {}", plainSql);
 // WARNING: Not safe for execution - use for logging only
 ```
 
+---
+
 ## Identifier Quoting
 
 Querier supports database-specific identifier quoting to handle reserved words and special characters in table and column names (e.g., `order`, `user`, `group`, `select`, `table`).
@@ -343,6 +389,8 @@ Use identifier quoting when:
 - Your database schema requires quoted identifiers
 
 **Note**: Raw expressions and CTEs are not automatically quoted as they may contain complex SQL. Quote those manually if needed.
+
+---
 
 ## Usage Examples
 
@@ -537,9 +585,159 @@ Select select = Select.builder()
 // SQL: SELECT DISTINCT orders.status FROM orders
 ```
 
+---
+
+## Dashboards *(querier-ui)*
+
+> **Requires** the `querier-ui` artifact. See [Installation](#installation).
+
+Querier UI lets you build server-side HTML dashboards powered by [Chart.js](https://www.chartjs.org/)
+directly from your Querier SQL queries — no JavaScript or frontend tooling required.
+
+The rendered output is a **self-contained HTML page** (or an embeddable fragment) that you can serve
+directly from any Java web framework.
+
+### How it works
+
+1. Define one or more **widgets**, each backed by a Querier `Select` query
+2. Assemble them into a **`Dashboard`**
+3. Provide a **`QueryRunner`** that bridges Querier to your database layer
+4. Call **`renderHtml()`** or **`renderFragment()`** to get the output
+
+### Supported Chart Types
+
+`BAR` · `HORIZONTAL_BAR` · `LINE` · `PIE` · `DOUGHNUT` · `RADAR` · `POLAR_AREA` · `SCATTER` · `BUBBLE`
+
+### Quick Start — Dashboards
+
+```java
+import com.aytmatech.querier.Aggregate;
+import com.aytmatech.querier.Select;
+import com.aytmatech.querier.dashboard.*;
+
+// 1. Define a QueryRunner (shown here with Spring JdbcTemplate)
+QueryRunner runner = select -> {
+    Select.PositionalSqlAndParams sp = select.toPositionalSql();
+    return jdbcTemplate.queryForList(sp.sql(), sp.params().toArray());
+};
+
+// 2. Define a widget
+DashboardWidget revenueWidget = DashboardWidget.builder()
+    .title("Revenue by Status")
+    .chartType(ChartType.BAR)
+    .query(
+        Select.builder()
+            .select(Order::getStatus)
+            .select(Aggregate.sum(Order::getTotal).as("revenue"))
+            .from(Order.class)
+            .groupBy(Order::getStatus)
+            .build()
+    )
+    .labelColumn("status")
+    .dataset(ChartDataset.of("revenue")
+        .label("Total Revenue")
+        .backgroundColor("#4e79a7")
+        .build())
+    .build();
+
+// 3. Assemble the dashboard
+Dashboard dashboard = Dashboard.builder()
+    .title("Sales Overview")
+    .layout(DashboardLayout.GRID_2_COLS)
+    .addWidget(revenueWidget)
+    .build();
+
+// 4. Render
+String html = DashboardRenderer.builder()
+    .dashboard(dashboard)
+    .queryRunner(runner)
+    .build()
+    .renderHtml();
+```
+
+### Serving from Spring MVC
+
+```java
+@GetMapping(value = "/dashboard", produces = MediaType.TEXT_HTML_VALUE)
+@ResponseBody
+public String dashboard() {
+    return DashboardRenderer.builder()
+        .dashboard(myDashboard)
+        .queryRunner(myRunner)
+        .build()
+        .renderHtml();
+}
+```
+
+### Embedding in an existing page (Thymeleaf / JSP)
+
+```java
+// Returns only the <div> grid + <script> block — no <html>/<head> wrappers
+String fragment = DashboardRenderer.builder()
+    .dashboard(myDashboard)
+    .queryRunner(myRunner)
+    .build()
+    .renderFragment();
+```
+
+### Custom Chart.js URL (offline / self-hosted)
+
+By default, Chart.js is loaded from `https://cdn.jsdelivr.net/npm/chart.js`.
+Override this for offline or self-hosted deployments:
+
+```java
+DashboardRenderer.builder()
+    .dashboard(myDashboard)
+    .queryRunner(myRunner)
+    .chartJsUrl("/static/js/chart.umd.min.js")
+    .build()
+    .renderHtml();
+```
+
+### Multi-dataset charts
+
+Call `.dataset(...)` multiple times on a widget to produce grouped / side-by-side series:
+
+```java
+DashboardWidget multiWidget = DashboardWidget.builder()
+    .title("Revenue vs Order Count per Customer")
+    .chartType(ChartType.BAR)
+    .query(monthlyQuery)
+    .labelColumn("customer_id")
+    .dataset(ChartDataset.of("revenue")
+        .label("Revenue").backgroundColor("#4e79a7").build())
+    .dataset(ChartDataset.of("order_count")
+        .label("Order Count").backgroundColor("#f28e2b").build())
+    .build();
+```
+
+### Chart Options
+
+Fine-tune each widget with `ChartOptions`:
+
+```java
+.chartOptions(ChartOptions.builder()
+    .xAxisLabel("Month")
+    .yAxisLabel("Revenue (USD)")
+    .legendPosition(ChartOptions.LegendPosition.BOTTOM)
+    .stacked(true)
+    .build())
+```
+
+### Dashboard Layout Options
+
+| Layout | Description |
+|---|---|
+| `SINGLE_COL` | One chart per row |
+| `GRID_2_COLS` | Two charts per row *(default)* |
+| `GRID_3_COLS` | Three charts per row |
+| `MASONRY` | Auto-fit responsive grid |
+
+---
+
 ## API Reference
 
-### Core Classes
+### Core Classes (`querier-core`)
 
 - **`Select`** - Main query builder with fluent API
 - **`Select.SqlAndParams`** - Record containing SQL with named (`:param`) placeholders and parameter map
@@ -559,6 +757,19 @@ Select select = Select.builder()
 - **`SqlClause`** - Enum for clause keywords used in SELECT statements
 - **`SqlOperator`** - Enum for comparison and logical operators
 - **`SqlValue`** - Enum for special SQL values
+
+### Dashboard Classes (`querier-ui`)
+
+- **`Dashboard`** - Top-level dashboard definition (title, layout, widgets)
+- **`DashboardWidget`** - A single chart widget binding a `Select` query to a chart type and dataset(s)
+- **`DashboardRenderer`** - Executes queries and renders the HTML output
+- **`QueryRunner`** - Functional interface bridging Querier to your database execution layer
+- **`ChartDataset`** - Maps a result-set column to Chart.js dataset properties (label, colors, fill)
+- **`ChartData`** - Internal model representing the Chart.js `data` object (labels + datasets)
+- **`ChartDataMapper`** - Transforms raw query rows into `ChartData`
+- **`ChartOptions`** - Chart.js options (legend position, axis labels, stacked mode, responsive)
+- **`ChartType`** - Enum of supported Chart.js chart types
+- **`DashboardLayout`** - Enum for the dashboard grid layout
 
 ### Annotations
 
@@ -583,6 +794,8 @@ By default, Querier converts camelCase getter names to snake_case column names:
 
 Override this with `@Column` or JPA `@Column` annotations when needed.
 
+---
+
 ## Building from Source
 
 ```bash
@@ -590,12 +803,17 @@ Override this with `@Column` or JPA `@Column` annotations when needed.
 git clone https://github.com/AytmaTech/querier.git
 cd querier
 
-# Build with Maven
+# Build all modules
 mvn clean install
+
+# Build only core
+mvn clean install -pl querier-core
 
 # Run tests
 mvn test
 ```
+
+---
 
 ## License
 
@@ -608,4 +826,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Support
 
 For issues, questions, or suggestions, please open an issue on GitHub.
-
