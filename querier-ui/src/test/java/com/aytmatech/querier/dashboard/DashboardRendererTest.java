@@ -314,6 +314,207 @@ class DashboardRendererTest {
     assertFalse(html.contains("My <Dashboard>"));
   }
 
+  @Test
+  void renderHtml_maintainAspectRatio_defaultTrue_appearsInOptions() {
+    assertTrue(renderer().renderHtml().contains("maintainAspectRatio: true"));
+  }
+
+  @Test
+  void renderHtml_maintainAspectRatio_false_appearsInOptions() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().maintainAspectRatio(false).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("maintainAspectRatio: false"));
+  }
+
+  @Test
+  void renderHtml_aspectRatio_customValue_appearsInOptions() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().aspectRatio(3.0d).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("aspectRatio: 3.0"));
+  }
+
+  @Test
+  void renderHtml_aspectRatio_null_barChart_defaultsTo2() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().aspectRatio(null).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("aspectRatio: 2"));
+  }
+
+  @Test
+  void renderHtml_aspectRatio_null_pieChart_defaultsTo1() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("Pie")
+            .chartType(ChartType.PIE)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().aspectRatio(null).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("aspectRatio: 1"));
+  }
+
+  @Test
+  void renderHtml_aspectRatio_null_doughnutChart_defaultsTo1() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("Doughnut")
+            .chartType(ChartType.DOUGHNUT)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().aspectRatio(null).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("aspectRatio: 1"));
+  }
+
+  @Test
+  void renderHtml_resizeDelay_defaultZero_appearsInOptions() {
+    assertTrue(renderer().renderHtml().contains("resizeDelay: 0"));
+  }
+
+  @Test
+  void renderHtml_resizeDelay_customValue_appearsInOptions() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().resizeDelay(150).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("resizeDelay: 150"));
+  }
+
+  @Test
+  void renderHtml_autoPadding_defaultTrue_appearsInOptions() {
+    assertTrue(renderer().renderHtml().contains("autoPadding: true"));
+  }
+
+  @Test
+  void renderHtml_autoPadding_false_appearsInOptions() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().autoPadding(false).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("autoPadding: false"));
+  }
+
+  @Test
+  void renderHtml_padding_defaultZero_appearsInOptions() {
+    assertTrue(renderer().renderHtml().contains("padding: 0"));
+  }
+
+  @Test
+  void renderHtml_padding_customValue_appearsInOptions() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().padding(20).build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("padding: 20"));
+  }
+
+  @Test
+  void renderHtml_subtitle_whenSet_appearsInPlugins() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().subtitle("Q1 2026").build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertTrue(html.contains("subtitle: { display: true"));
+    assertTrue(html.contains("'Q1 2026'"));
+  }
+
+  @Test
+  void renderHtml_subtitle_whenEmpty_subtitleBlockAbsent() {
+    DashboardWidget w =
+        DashboardWidget.builder()
+            .title("W")
+            .chartType(ChartType.BAR)
+            .query(Select.builder().from(Fixture.class).build())
+            .labelColumn("status")
+            .dataset(ChartDataset.of("total").build())
+            .chartOptions(ChartOptions.builder().subtitle("").build())
+            .build();
+    Dashboard d = Dashboard.builder().addWidget(w).build();
+    String html =
+        DashboardRenderer.builder().dashboard(d).queryRunner(STUB_RUNNER).build().renderHtml();
+
+    assertFalse(html.contains("subtitle: { display: true"));
+  }
+
   @com.aytmatech.querier.annotation.Table("fixture")
   private static class Fixture {
     public Long getId() {
