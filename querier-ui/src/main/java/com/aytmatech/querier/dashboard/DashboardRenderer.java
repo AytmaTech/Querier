@@ -284,17 +284,41 @@ public class DashboardRenderer {
     StringBuilder sb = new StringBuilder();
     sb.append("{\n");
     sb.append("          responsive: ").append(opts.isResponsive()).append(",\n");
-    sb.append("          maintainAspectRatio: true,\n");
+    sb.append("          maintainAspectRatio: ").append(opts.isMaintainAspectRatio()).append(",\n");
+    if (opts.getAspectRatio() != null) {
+      sb.append("          aspectRatio: ").append(opts.getAspectRatio()).append(",\n");
+    } else {
+      switch (chartType) {
+        case PIE, DOUGHNUT, RADAR, POLAR_AREA -> sb.append("          aspectRatio: 1,\n");
+        default -> sb.append("          aspectRatio: 2,\n");
+      }
+    }
+    sb.append("          resizeDelay: ").append(opts.getResizeDelay()).append(",\n");
 
     if (chartType == ChartType.HORIZONTAL_BAR) {
       sb.append("          indexAxis: 'y',\n");
     }
 
+    sb.append("          layout: {\n")
+        .append("          autoPadding: ")
+        .append(opts.isAutoPadding())
+        .append(",\n")
+        .append("          padding: ")
+        .append(opts.getPadding())
+        .append(",\n")
+        .append("          },\n");
+
     sb.append("          plugins: {\n")
         .append("            legend: { position: '")
         .append(opts.getLegendPosition().getValue())
-        .append("' }\n")
-        .append("          }");
+        .append("' }");
+    if (!opts.getSubtitle().isBlank())
+      sb.append(",\n")
+          .append("          subtitle: { display: true, text: ")
+          .append(toJsString(opts.getSubtitle()))
+          .append(" }\n");
+    else sb.append("\n");
+    sb.append("          }");
 
     if (hasScales(chartType)) {
       sb.append(",\n")
