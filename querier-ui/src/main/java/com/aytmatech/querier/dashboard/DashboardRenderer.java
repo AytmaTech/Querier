@@ -65,6 +65,7 @@ public class DashboardRenderer {
   private final Dashboard dashboard;
   private final QueryRunner queryRunner;
   private final String chartJsUrl;
+  private final boolean omitChartJsScriptElement;
 
   private DashboardRenderer(Builder builder) {
     this.dashboard = builder.dashboard;
@@ -73,6 +74,7 @@ public class DashboardRenderer {
         builder.chartJsUrl != null && !builder.chartJsUrl.isBlank()
             ? builder.chartJsUrl
             : DEFAULT_CHART_JS_URL;
+    this.omitChartJsScriptElement = builder.omitChartJsScriptElement;
   }
 
   /**
@@ -103,11 +105,10 @@ public class DashboardRenderer {
         .append("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n")
         .append("  <title>")
         .append(escapeHtml(dashboard.getTitle()))
-        .append("</title>\n")
-        .append("  <script src=\"")
-        .append(escapeHtml(chartJsUrl))
-        .append("\"></script>\n")
-        .append("  <style>\n")
+        .append("</title>\n");
+    if (!omitChartJsScriptElement)
+      html.append("  <script src=\"").append(escapeHtml(chartJsUrl)).append("\"></script>\n");
+    html.append("  <style>\n")
         .append(buildCss())
         .append("  </style>\n")
         .append("</head>\n")
@@ -138,11 +139,10 @@ public class DashboardRenderer {
 
     html.append("<!-- Querier Dashboard: ")
         .append(escapeHtml(dashboard.getTitle()))
-        .append(" -->\n")
-        .append("<script src=\"")
-        .append(escapeHtml(chartJsUrl))
-        .append("\"></script>\n")
-        .append("<h1 class=\"dashboard-title\">")
+        .append(" -->\n");
+    if (!omitChartJsScriptElement)
+      html.append("<script src=\"").append(escapeHtml(chartJsUrl)).append("\"></script>\n");
+    html.append("<h1 class=\"dashboard-title\">")
         .append(escapeHtml(dashboard.getTitle()))
         .append("</h1>\n")
         .append(buildGrid(widgets))
@@ -491,6 +491,7 @@ public class DashboardRenderer {
     private Dashboard dashboard;
     private QueryRunner queryRunner;
     private String chartJsUrl;
+    private boolean omitChartJsScriptElement = false;
 
     /**
      * Creates a new Builder instance. Required properties (dashboard, queryRunner) must be set
@@ -531,6 +532,19 @@ public class DashboardRenderer {
      */
     public Builder chartJsUrl(String chartJsUrl) {
       this.chartJsUrl = chartJsUrl;
+      return this;
+    }
+
+    /**
+     * Sets whether to omit the Chart.js script tag in the generated HTML.
+     *
+     * @param omitChartJsScriptElement if true, the generated HTML will not include the {@code
+     *     <script src="...chart.js">} element. This is useful when embedding the dashboard in a
+     *     page that already includes Chart.js.
+     * @return this builder
+     */
+    public Builder omitChartJsScriptElement(boolean omitChartJsScriptElement) {
+      this.omitChartJsScriptElement = omitChartJsScriptElement;
       return this;
     }
 
