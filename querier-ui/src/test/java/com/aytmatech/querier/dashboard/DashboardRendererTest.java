@@ -55,6 +55,18 @@ class DashboardRendererTest {
   }
 
   @Test
+  void renderFragment_omitScriptElement() {
+    String html =
+        DashboardRenderer.builder()
+            .dashboard(dashboard)
+            .queryRunner(STUB_RUNNER)
+            .omitChartJsScriptElement(true)
+            .build()
+            .renderFragment();
+    assertFalse(html.contains("https://cdn.jsdelivr.net/npm/chart.js"));
+  }
+
+  @Test
   void renderFragment_containsCanvasElement() {
     assertTrue(renderer().renderFragment().contains("<canvas id=\"querier-chart-0\""));
   }
@@ -191,6 +203,18 @@ class DashboardRendererTest {
             .build()
             .renderHtml();
     assertTrue(html.contains("cdn.jsdelivr.net"));
+  }
+
+  @Test
+  void renderHtml_omitScriptElement() {
+    String html =
+        DashboardRenderer.builder()
+            .dashboard(dashboard)
+            .queryRunner(STUB_RUNNER)
+            .omitChartJsScriptElement(true)
+            .build()
+            .renderHtml();
+    assertFalse(html.contains("https://cdn.jsdelivr.net/npm/chart.js"));
   }
 
   @Test
