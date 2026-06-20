@@ -67,4 +67,88 @@ class ChartOptionsTest {
     assertEquals("left", ChartOptions.LegendPosition.LEFT.getValue());
     assertEquals("right", ChartOptions.LegendPosition.RIGHT.getValue());
   }
+
+  @Test
+  void aspectRatio_defaultIsNull() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertNull(opts.getAspectRatio());
+  }
+
+  @Test
+  void aspectRatio_setsValue() {
+    ChartOptions opts = ChartOptions.builder().aspectRatio(1.5d).build();
+    assertEquals(1.5d, opts.getAspectRatio());
+  }
+
+  @Test
+  void aspectRatio_null_remainsNull() {
+    ChartOptions opts = ChartOptions.builder().aspectRatio(null).build();
+    assertNull(opts.getAspectRatio());
+  }
+
+  @Test
+  void maintainAspectRatio_defaultIsTrue() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertTrue(opts.isMaintainAspectRatio());
+  }
+
+  @Test
+  void maintainAspectRatio_canBeDisabled() {
+    ChartOptions opts = ChartOptions.builder().maintainAspectRatio(false).build();
+    assertFalse(opts.isMaintainAspectRatio());
+  }
+
+  @Test
+  void resizeDelay_defaultIsZero() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertEquals(0, opts.getResizeDelay());
+  }
+
+  @Test
+  void resizeDelay_setsValue() {
+    ChartOptions opts = ChartOptions.builder().resizeDelay(200).build();
+    assertEquals(200, opts.getResizeDelay());
+  }
+
+  @Test
+  void autoPadding_defaultIsTrue() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertTrue(opts.isAutoPadding());
+  }
+
+  @Test
+  void autoPadding_canBeDisabled() {
+    ChartOptions opts = ChartOptions.builder().autoPadding(false).build();
+    assertFalse(opts.isAutoPadding());
+  }
+
+  @Test
+  void padding_defaultIsZero() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertEquals(0, opts.getPadding());
+  }
+
+  @Test
+  void padding_setsValue() {
+    ChartOptions opts = ChartOptions.builder().padding(16).build();
+    assertEquals(16, opts.getPadding());
+  }
+
+  @Test
+  void subtitle_defaultIsEmpty() {
+    ChartOptions opts = ChartOptions.builder().build();
+    assertEquals("", opts.getSubtitle());
+  }
+
+  @Test
+  void subtitle_setsText() {
+    ChartOptions opts = ChartOptions.builder().subtitle("Q1 2026").build();
+    assertEquals("Q1 2026", opts.getSubtitle());
+  }
+
+  @Test
+  void subtitle_null_storesNull() {
+    ChartOptions opts = ChartOptions.builder().subtitle(null).build();
+    assertNull(opts.getSubtitle());
+  }
 }
