@@ -4,7 +4,7 @@
 
     <groupId>com.aytmatech</groupId>
     <artifactId>querier</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Querier (Parent)</name>
@@ -36,7 +36,7 @@
         <connection>scm:git:https://github.com/AytmaTech/querier.git</connection>
         <developerConnection>scm:git:https://github.com/AytmaTech/querier.git</developerConnection>
         <url>https://github.com/AytmaTech/querier</url>
-        <tag>v1.0.1</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
