@@ -14,6 +14,7 @@
     <modules>
         <module>querier-core</module>
         <module>querier-ui</module>
+        <module>querier-ai</module>
     </modules>
 
     <developers>
@@ -46,6 +47,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.11.4</junit.version>
+        <jackson-databind.version>2.22.3</jackson-databind.version>
     </properties>
 
     <dependencyManagement>
@@ -78,6 +80,11 @@
                 <artifactId>junit-jupiter-params</artifactId>
                 <version>${junit.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -136,7 +143,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.10.0</version>
+                <version>3.10.4</version>
                 <configuration>
                     <java>
                         <googleJavaFormat>
@@ -159,7 +166,7 @@
             <plugin>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.10.4.0</version>
+                <version>4.10.5.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -226,7 +233,7 @@
             <plugin>
                 <groupId>org.sonatype.central</groupId>
                 <artifactId>central-publishing-maven-plugin</artifactId>
-                <version>0.11.0</version>
+                <version>0.12.0</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>

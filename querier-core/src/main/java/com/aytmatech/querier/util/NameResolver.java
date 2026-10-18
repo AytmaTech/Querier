@@ -11,6 +11,10 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utility class for resolving table and column names from classes and method references. Supports
@@ -340,4 +344,45 @@ public final class NameResolver {
    *     the method reference
    */
   private record ClassAndMethod(Class<?> implClass, String implMethodName) {}
+
+  /**
+   * Derives the conventional Java field name from a getter name. {@code getTotal} → {@code total},
+   * {@code isActive} → {@code active}. Returns {@code null} if the getter name does not follow
+   * either convention.
+   *
+   * @param getterName the name of the getter method
+   * @return the derived field name, or {@code null} if the getter name is not valid
+   */
+  public static String deriveFieldName(String getterName) {
+    if (getterName.startsWith("get") && getterName.length() > 3) {
+      return Character.toLowerCase(getterName.charAt(3)) + getterName.substring(4);
+    }
+    if (getterName.startsWith("is") && getterName.length() > 2) {
+      return Character.toLowerCase(getterName.charAt(2)) + getterName.substring(3);
+    }
+    return null;
+  }
+
+  /**
+   * Returns all public, no-arg, non-void getter methods ({@code get*} / {@code is*}) declared on
+   * the class or inherited from non-{@link Object} superclasses.
+   *
+   * @param cls the class to inspect
+   * @return a list of getter methods
+   */
+  public static List<Method> collectGetters(Class<?> cls) {
+    List<Method> getters = new ArrayList<>();
+    Class<?> current = cls;
+    while (current != null && current != Object.class) {
+      Arrays.stream(current.getDeclaredMethods())
+          .filter(m -> Modifier.isPublic(m.getModifiers()))
+          .filter(m -> !Modifier.isStatic(m.getModifiers()))
+          .filter(m -> m.getParameterCount() == 0)
+          .filter(m -> m.getReturnType() != void.class)
+          .filter(m -> m.getName().startsWith("get") || m.getName().startsWith("is"))
+          .forEach(getters::add);
+      current = current.getSuperclass();
+    }
+    return getters;
+  }
 }

@@ -24,6 +24,18 @@ public class Select {
   private final SetOperation setOperation;
   private final QuoteStrategy quoteStrategy;
 
+  /**
+   * When non-null, {@link #toSqlAndParams()} short-circuits all builder state and returns this SQL
+   * verbatim with an empty parameter map. Set via {@link #rawQuery(String)} or {@link
+   * Builder#rawSql(String)}.
+   *
+   * <p>This is the bridge used by the AI SQL-first path: the AI produces standard SQL, we validate
+   * it against the schema, then wrap it in a {@code Select} so the rest of the application can
+   * treat it uniformly — call {@code toSqlAndParams()}, {@code toPositionalSql()}, {@code
+   * toIndexedSql()}, or {@code toPlainSql()} exactly as with any other {@code Select}.
+   */
+  private final String rawSql;
+
   private Select(Builder builder) {
     this.selectItems = builder.selectItems;
     this.fromTable = builder.fromTable;
@@ -39,6 +51,7 @@ public class Select {
     this.ctes = builder.ctes;
     this.setOperation = builder.setOperation;
     this.quoteStrategy = builder.quoteStrategy;
+    this.rawSql = builder.rawSql;
   }
 
   /**
@@ -48,6 +61,49 @@ public class Select {
    */
   public static Builder builder() {
     return new Builder();
+  }
+
+  /**
+   * Creates a {@code Select} that wraps a raw SQL string verbatim.
+   *
+   * <p>Use this when you have a complete, validated SQL string (e.g., produced by an AI or an
+   * external tool) and want to pass it through the standard {@code Select} execution path without
+   * any builder-level transformation.
+   *
+   * <p>All output methods ({@link #toSqlAndParams()}, {@link #toPositionalSql()}, {@link
+   * #toIndexedSql()}, {@link #toPlainSql()}) return the SQL as-is with an empty parameter map.
+   * Named parameter placeholders in the form {@code :paramXXX} are still supported — they will be
+   * recognised by {@link #toPositionalSql()} and {@link #toIndexedSql()}.
+   *
+   * <p><strong>Security note:</strong> the caller is responsible for ensuring the SQL has been
+   * validated against the allowed schema before calling this method. Never pass untrusted user
+   * input directly.
+   *
+   * <pre>{@code
+   * // AI SQL-first path — SQL has already been validated against AiSchemaContext
+   * Select select = Select.rawQuery(validatedSql);
+   * List<Map<String, Object>> rows = jdbcRunner.run(select);
+   * }</pre>
+   *
+   * @param sql a complete, validated SQL SELECT statement
+   * @return a {@code Select} instance whose output methods return {@code sql} verbatim
+   * @throws IllegalArgumentException if {@code sql} is null or blank
+   */
+  public static Select rawQuery(String sql) {
+    if (sql == null || sql.isBlank()) {
+      throw new IllegalArgumentException("rawQuery sql must not be null or blank");
+    }
+    return builder().rawSql(sql).build();
+  }
+
+  /**
+   * Returns the raw SQL string if this {@code Select} was created via {@link #rawQuery(String)} or
+   * {@link Builder#rawSql(String)}, or {@link Optional#empty()} otherwise.
+   *
+   * @return an {@code Optional} containing the raw SQL string if present, or empty if not
+   */
+  public Optional<String> getRawSql() {
+    return Optional.ofNullable(rawSql);
   }
 
   /**
@@ -141,9 +197,16 @@ public class Select {
   /**
    * Converts this query to SQL and parameter map.
    *
+   * <p>If this {@code Select} was created via {@link #rawQuery(String)} or {@link
+   * Builder#rawSql(String)}, the raw SQL string is returned verbatim with an empty parameter map,
+   * bypassing all builder state.
+   *
    * @return SqlAndParams containing SQL with named (:param) placeholders and parameter map
    */
   public SqlAndParams toSqlAndParams() {
+    if (rawSql != null) {
+      return new SqlAndParams(rawSql, Map.of());
+    }
     return toSqlAndParams(new ParamNameGenerator());
   }
 
@@ -152,11 +215,19 @@ public class Select {
    * generator across nested queries (CTEs, set operations, EXISTS subqueries) ensures all parameter
    * names are unique within the combined SQL.
    *
+   * <p>If this {@code Select} was created via {@link #rawQuery(String)} or {@link
+   * Builder#rawSql(String)}, the raw SQL string is returned verbatim with an empty parameter map
+   * regardless of the supplied generator.
+   *
    * @param paramGen the parameter name generator to use for generating unique parameter names
    *     across this query and any nested queries
    * @return SqlAndParams containing SQL with named (:param) placeholders and parameter map
    */
   SqlAndParams toSqlAndParams(ParamNameGenerator paramGen) {
+    if (rawSql != null) {
+      return new SqlAndParams(rawSql, Map.of());
+    }
+
     StringBuilder sql = new StringBuilder();
     Map<String, Object> allParams = new HashMap<>();
 
@@ -471,6 +542,7 @@ public class Select {
     private final List<CTE> ctes = new ArrayList<>();
     private SetOperation setOperation;
     private QuoteStrategy quoteStrategy = QuoteStrategy.NONE;
+    private String rawSql;
 
     /**
      * Adds a SELECT column reference.
@@ -551,6 +623,44 @@ public class Select {
      */
     public Builder from(Expression expression) {
       this.fromExpression = expression;
+      return this;
+    }
+
+    /**
+     * Sets a raw SQL string that completely overrides all builder state when {@link
+     * Select#toSqlAndParams()} is called.
+     *
+     * <p>Use this when you have a complete, validated SQL string and still want to record a primary
+     * entity class via {@link #from(Class)} for result-mapping purposes (e.g., the ORM knows which
+     * type to map rows to), while returning the raw SQL for actual execution.
+     *
+     * <p>When {@code rawSql} is set, {@link Select#toSqlAndParams()} returns the raw SQL verbatim
+     * with an empty parameter map, ignoring all other builder state (select items, joins, where,
+     * etc.). All other output methods ({@link Select#toPositionalSql()}, {@link
+     * Select#toIndexedSql()}, {@link Select#toPlainSql()}) behave accordingly.
+     *
+     * <p>Prefer {@link Select#rawQuery(String)} when you do not need to record an entity class.
+     *
+     * <p><strong>Security note:</strong> the caller is responsible for ensuring the SQL has been
+     * validated against the allowed schema. Never pass untrusted user input directly.
+     *
+     * <pre>{@code
+     * // AI SQL-first path: entity class recorded for result mapping, raw SQL used for execution
+     * Select select = Select.builder()
+     *     .from(Customer.class)   // tells the ORM which type to map rows to
+     *     .rawSql(validatedSql)   // actual SQL sent to the database
+     *     .build();
+     * }</pre>
+     *
+     * @param sql a complete, validated SQL SELECT statement; must not be null or blank
+     * @return this builder for chaining
+     * @throws IllegalArgumentException if {@code sql} is null or blank
+     */
+    public Builder rawSql(String sql) {
+      if (sql == null || sql.isBlank()) {
+        throw new IllegalArgumentException("rawSql must not be null or blank");
+      }
+      this.rawSql = sql;
       return this;
     }
 

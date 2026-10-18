@@ -181,8 +181,6 @@ class OutputFormatTest {
 
     Select.IndexedSqlAndParams result = select.toIndexedSql();
 
-    System.out.println(select.toPlainSql());
-
     assertTrue(result.sql().contains("$1"));
     assertTrue(result.sql().contains("$2"));
     assertTrue(result.sql().contains("$3"));
