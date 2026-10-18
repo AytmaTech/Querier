@@ -13,6 +13,7 @@ pattern with method references for compile-time safety.
 - ✅ **Zero runtime dependencies**: Lightweight library with no external dependencies (JPA is optional)
 - ✅ **Java 17+**: Built with modern Java features
 - ✅ **Server-side Dashboards** *(optional)*: Generate Chart.js-powered HTML dashboards directly from your Querier queries — no JavaScript required
+- ✅ **AI-powered queries and dashboards** *(optional)*: Translate natural-language prompts into validated `Select` or `Dashboard` objects — bring your own key, works with any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Mistral, Ollama, etc.)
 
 ## Requirements
 
@@ -30,10 +31,12 @@ You only pull in what you need.
 |---|---|---|
 | `querier-core` | Type-safe SQL query builder — all core features | ✅ Always |
 | `querier-ui` | Server-side dashboard & Chart.js rendering | ➕ Optional |
+| `querier-ai` | Natural-language → SQL → `Select` translation, AI-powered dashboard generation | ➕ Optional |
 
 > **Note:** `querier-ui` declares `querier-core` as a transitive dependency.
 > If you add `querier-ui`, you do **not** need to declare `querier-core` separately.
 
+> **Note:** `querier-ai` declares `querier-core` as a required dependency and `querier-ui` as an optional one (needed only for AI dashboard generation). You do **not** need to declare them separately.
 ---
 
 ## Installation
@@ -75,6 +78,25 @@ Add `querier-ui` when you also want server-side dashboard generation powered by 
 #### Gradle
 ```gradle
 implementation 'com.aytmatech:querier-ui:QUERIER_VERSION'
+```
+
+### Core + AI *(optional)*
+
+Add `querier-ai` when you want natural-language query generation or AI-powered dashboard creation.
+`querier-core` is included transitively. Add `querier-ui` as well if you also need AI-generated dashboards.
+
+#### Maven
+```xml
+<dependency>
+    <groupId>com.aytmatech</groupId>
+    <artifactId>querier-ai</artifactId>
+    <version>QUERIER_VERSION</version>
+</dependency>
+```
+
+#### Gradle
+```gradle
+implementation 'com.aytmatech:querier-ai:QUERIER_VERSION'
 ```
 
 ---
@@ -735,6 +757,138 @@ Fine-tune each widget with `ChartOptions`:
 
 ---
 
+## AI *(querier-ai)*
+
+> **Requires** the `querier-ai` artifact. See [Installation](#installation).
+
+Querier AI lets you translate **natural-language prompts** into validated Querier `Select` objects
+or fully compiled `Dashboard` instances — no SQL writing required.
+
+### Architecture: SQL-first, BYOK
+
+The AI module is **provider-neutral** and works with any OpenAI-compatible endpoint
+(OpenAI, Azure OpenAI, Mistral, Ollama, …). You supply your own API key via environment variables.
+
+The pipeline for natural-language queries is:
+1. Ask the AI to produce standard SQL (leverages the model's extensive SQL training)
+2. Validate the SQL against your declared schema (security boundary — no hallucinated tables/columns)
+3. Parse the SQL into a `Select` object (deterministic, no AI involved)
+
+### Configuration
+
+```java
+AiClient client = AiClient.builder()
+    .apiKey(System.getenv("QUERIER_AI_API_KEY"))
+    .baseUrl(System.getenv("QUERIER_AI_BASE_URL"))   // e.g. https://api.openai.com/v1
+    .model(System.getenv("QUERIER_AI_MODEL"))         // e.g. gpt-4o-mini
+    .build();
+
+QuerierAi ai = QuerierAi.builder()
+    .client(client)
+    .retryPolicy(RetryPolicy.ofMaxAttempts(2))        // auto-correct invalid SQL, optional
+    .build();
+```
+
+The three environment variables used by default:
+
+| Variable | Description |
+|---|---|
+| `QUERIER_AI_API_KEY` | API key for authentication |
+| `QUERIER_AI_BASE_URL` | Base URL of the OpenAI-compatible endpoint |
+| `QUERIER_AI_MODEL` | Model identifier (e.g. `gpt-4o`, `mistral-large-latest`) |
+
+You can also load them automatically with `AiEndpoint.fromEnvironment()`.
+
+### Defining the Schema Context
+
+The AI only sees the tables and columns you explicitly expose. Use `QueryRequest.entities()` to
+auto-inspect your annotated entity classes:
+
+```java
+QueryRequest request = QueryRequest.builder()
+    .prompt("Show the top 10 customers by revenue in the last 30 days")
+    .entities(Customer.class, Order.class)
+    .build();
+```
+
+Or build an `AiSchemaContext` manually for full control.
+
+### Natural-Language Queries
+
+```java
+QueryResult result = ai.query(request);
+
+if (result.isValid()) {
+    Select select = result.query().get();
+    // use select with Spring JDBC, Hibernate, jOOQ, etc.
+    Select.PositionalSqlAndParams sp = select.toPositionalSql();
+    List<Map<String, Object>> rows = jdbcTemplate.queryForList(sp.sql(), sp.params().toArray());
+} else {
+    result.validationIssues().forEach(System.err::println);
+}
+```
+
+If the prompt is ambiguous, `result.interpretationNote()` contains the AI's explanation.
+
+### AI-Powered Dashboards *(requires querier-ui)*
+
+```java
+QueryRequest request = QueryRequest.builder()
+    .prompt("Create a sales overview dashboard with revenue by status and top customers")
+    .entities(Customer.class, Order.class)
+    .build();
+
+DashboardResult result = ai.dashboard(request);
+
+if (result.isValid()) {
+    Dashboard dashboard = result.dashboard().get();
+    String html = DashboardRenderer.builder()
+        .dashboard(dashboard)
+        .queryRunner(myRunner)
+        .build()
+        .renderHtml();
+}
+```
+
+### Semantic Annotations
+
+Enrich your entity classes with the `@Semantic` annotation to help the AI map natural-language
+terms to the correct columns:
+
+```java
+@Semantic(description = "A customer purchase", synonyms = {"sale", "transaction"})
+@Table("orders")
+public class Order {
+
+    @Semantic(
+        description = "Total monetary value of the order",
+        synonyms = {"revenue", "sales value", "order value"}
+    )
+    public BigDecimal getTotal() { return total; }
+
+    @Semantic(description = "Current state of the order", synonyms = {"state", "order state"})
+    public OrderStatus getStatus() { return status; }
+}
+```
+
+The annotation can be placed on the entity class, a getter method, or the backing field.
+
+### Retry Policy
+
+When the AI returns SQL that references unknown columns or tables, `querier-ai` can automatically
+send a correction request:
+
+```java
+QuerierAi ai = QuerierAi.builder()
+    .client(client)
+    .retryPolicy(RetryPolicy.ofMaxAttempts(2)) // up to 2 correction attempts
+    .build();
+```
+
+Use `RetryPolicy.disabled()` (the default) to turn off retries.
+
+---
+
 ## API Reference
 
 ### Core Classes (`querier-core`)
@@ -770,6 +924,20 @@ Fine-tune each widget with `ChartOptions`:
 - **`ChartOptions`** - Chart.js options (legend position, axis labels, stacked mode, responsive)
 - **`ChartType`** - Enum of supported Chart.js chart types
 - **`DashboardLayout`** - Enum for the dashboard grid layout
+
+### AI Classes (`querier-ai`)
+
+- **`QuerierAi`** - Primary entry point: `.query()` for natural-language → `Select`, `.dashboard()` for AI-generated dashboards
+- **`AiClient`** - Provider-neutral interface to any OpenAI-compatible endpoint
+- **`AiEndpoint`** - Immutable endpoint configuration (base URL, API key, model, timeouts)
+- **`AiCapabilities`** - Declares which features the configured endpoint/model supports
+- **`QueryRequest`** - Input object containing the natural-language prompt, schema context, and request options
+- **`QueryResult`** - Result of a `.query()` call — holds the compiled `Select` or validation issues
+- **`DashboardResult`** - Result of a `.dashboard()` call — holds the compiled `Dashboard` or validation issues
+- **`AiSchemaContext`** - The allowed schema boundary sent to the AI (tables + columns)
+- **`AiSchemaInspector`** - Reflects on entity classes to produce `AiSchemaContext` automatically
+- **`RetryPolicy`** - Configures automatic SQL correction retry attempts
+- **`@Semantic`** - Annotation to enrich entity classes/fields with business-domain descriptions and synonyms for improved AI accuracy
 
 ### Annotations
 
@@ -808,6 +976,9 @@ mvn clean install
 
 # Build only core
 mvn clean install -pl querier-core
+
+# Build only the AI module
+mvn clean install -pl querier-ai
 
 # Run tests
 mvn test
