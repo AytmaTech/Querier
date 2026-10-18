@@ -4,7 +4,7 @@
 
     <groupId>com.aytmatech</groupId>
     <artifactId>querier</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Querier (Parent)</name>
