@@ -1,3 +1,5 @@
+[![Maven Central](https://img.shields.io/maven-central/v/com.aytmatech/querier)](https://central.sonatype.com/artifact/com.aytmatech/querier)
+
 # Querier
 
 A **type-safe Java SQL query builder library** that helps you construct SQL queries using the Builder
