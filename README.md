@@ -1,3 +1,4 @@
+[![CI](https://github.com/AytmaTech/Querier/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AytmaTech/Querier/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/com.aytmatech/querier)](https://central.sonatype.com/artifact/com.aytmatech/querier)
 
 # Querier
