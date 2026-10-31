@@ -47,7 +47,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.11.4</junit.version>
-        <jackson-databind.version>2.22.3</jackson-databind.version>
+        <jackson-databind.version>2.22.4</jackson-databind.version>
     </properties>
 
     <dependencyManagement>
