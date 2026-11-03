@@ -277,7 +277,44 @@ public class Aggregate {
       if (alias != null) sql += " " + SqlClause.AS.getSql() + " " + alias;
       return new Resolved(sql, cwResolved.params());
     }
-    return new Resolved(toSql(), params);
+    String inner = buildColumnExpression(quoteStrategy);
+    String sql = function.getSql() + "(" + inner + ")";
+    if (alias != null) sql += " " + SqlClause.AS.getSql() + " " + alias;
+    return new Resolved(sql, params);
+  }
+
+  Resolved resolveWithoutAlias(QuoteStrategy quoteStrategy, ParamNameGenerator gen) {
+    if (caseWhen != null) {
+      CaseWhen.Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
+      String innerSql =
+          function == AggregateFunction.COUNT_DISTINCT
+              ? SqlClause.DISTINCT.getSql() + " " + cwResolved.sql()
+              : cwResolved.sql();
+      return new Resolved(function.getSql() + "(" + innerSql + ")", cwResolved.params());
+    }
+    return new Resolved(
+        function.getSql() + "(" + buildColumnExpression(quoteStrategy) + ")", params);
+  }
+
+  private String buildColumnExpression() {
+    return buildColumnExpression(QuoteStrategy.NONE);
+  }
+
+  private String buildColumnExpression(QuoteStrategy quoteStrategy) {
+    if (caseWhen != null) {
+      String cwSql = caseWhen.toSqlWithoutAlias();
+      return function == AggregateFunction.COUNT_DISTINCT
+          ? SqlClause.DISTINCT.getSql() + " " + cwSql
+          : cwSql;
+    }
+    if (columnExpression == null) return "";
+    if (columnExpression.equals(SqlValue.ALL.getSql())) return columnExpression;
+    String distinctPrefix = SqlClause.DISTINCT.getSql() + " ";
+    if (columnExpression.startsWith(distinctPrefix)) {
+      return distinctPrefix
+          + quoteStrategy.quoteQualified(columnExpression.substring(distinctPrefix.length()));
+    }
+    return quoteStrategy.quoteQualified(columnExpression);
   }
 
   /**
@@ -308,15 +345,5 @@ public class Aggregate {
   public String toSqlWithoutAlias() {
     String inner = buildColumnExpression();
     return function.getSql() + "(" + inner + ")";
-  }
-
-  private String buildColumnExpression() {
-    if (caseWhen != null) {
-      String cwSql = caseWhen.toSqlWithoutAlias();
-      return function == AggregateFunction.COUNT_DISTINCT
-          ? SqlClause.DISTINCT.getSql() + " " + cwSql
-          : cwSql;
-    }
-    return columnExpression;
   }
 }
