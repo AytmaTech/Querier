@@ -137,14 +137,14 @@ class QuoteStrategyTest {
             .select(Aggregate.sum(Order::getTotal).as("total"))
             .from(Order.class)
             .groupBy(Order::getCustomerId)
+            .groupBy(Order::getTotal)
             .having(Condition.gt(Order::getTotal, 1000))
             .quoteStrategy(QuoteStrategy.ANSI)
             .build();
 
     Select.SqlAndParams sp = select.toSqlAndParams();
     assertEquals(
-        "SELECT \"orders\".\"customer_id\", SUM(orders.total) AS total FROM \"orders\""
-            + " GROUP BY \"orders\".\"customer_id\" HAVING \"orders\".\"total\" > :param0",
+        "SELECT \"orders\".\"customer_id\", SUM(\"orders\".\"total\") AS total FROM \"orders\" GROUP BY \"orders\".\"customer_id\", \"orders\".\"total\" HAVING \"orders\".\"total\" > :param0",
         sp.sql());
   }
 

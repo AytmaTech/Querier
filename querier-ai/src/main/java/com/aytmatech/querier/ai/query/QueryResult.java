@@ -108,7 +108,6 @@ public final class QueryResult {
     private Select query;
     private final List<String> validationIssues = new ArrayList<>();
     private String interpretationNote;
-    // In the Builder:
     private String rawSql;
 
     private Builder() {}

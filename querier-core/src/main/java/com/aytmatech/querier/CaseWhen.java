@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
  */
 public class CaseWhen {
 
-  private static final Pattern TABLE_COLUMN_PATTERN =
-      Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\.([a-zA-Z_][a-zA-Z0-9_]*)\\b");
+  private static final Pattern QUALIFIED_IDENTIFIER_PATTERN =
+      Pattern.compile("\\b[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+\\b");
 
   /** Holds a fully-resolved SQL fragment and its bound parameters. */
   record Resolved(String sql, Map<String, Object> params) {}
@@ -253,15 +253,12 @@ public class CaseWhen {
    *     will contain "\"orders\".\"id\"".
    */
   private static String applyQuoteStrategy(String sql, QuoteStrategy quoteStrategy) {
-    Matcher matcher = TABLE_COLUMN_PATTERN.matcher(sql);
+    Matcher matcher = QUALIFIED_IDENTIFIER_PATTERN.matcher(sql);
     StringBuilder result = new StringBuilder();
     int lastEnd = 0;
     while (matcher.find()) {
       result.append(sql, lastEnd, matcher.start());
-      result
-          .append(quoteStrategy.quote(matcher.group(1)))
-          .append(".")
-          .append(quoteStrategy.quote(matcher.group(2)));
+      result.append(quoteStrategy.quoteQualified(matcher.group()));
       lastEnd = matcher.end();
     }
     result.append(sql.substring(lastEnd));

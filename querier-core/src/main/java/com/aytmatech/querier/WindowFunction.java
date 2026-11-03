@@ -1,6 +1,7 @@
 package com.aytmatech.querier;
 
 import com.aytmatech.querier.util.NameResolver;
+import com.aytmatech.querier.util.ParamNameGenerator;
 import java.util.*;
 
 /** Represents a window function for analytics queries. */
@@ -75,6 +76,53 @@ public class WindowFunction {
     return alias;
   }
 
+  /** Package-private: resolves this window function with the shared param generator. */
+  record Resolved(String sql, Map<String, Object> params) {}
+
+  Resolved resolve(QuoteStrategy strategy, ParamNameGenerator gen) {
+    Map<String, Object> allParams = new LinkedHashMap<>();
+
+    String funcSql = "";
+    if (aggregate != null) {
+      Aggregate.Resolved aggResolved = aggregate.resolveWithoutAlias(strategy, gen);
+      funcSql = aggResolved.sql();
+      allParams.putAll(aggResolved.params());
+    }
+
+    StringBuilder sql = new StringBuilder(funcSql);
+    sql.append(" ").append(SqlClause.OVER.getSql()).append(" (");
+
+    if (!partitionByColumns.isEmpty()) {
+      sql.append(SqlClause.PARTITION_BY.getSql()).append(" ");
+      List<String> quotedCols =
+          partitionByColumns.stream().map(c -> quoteColumn(c, strategy)).toList();
+      sql.append(String.join(", ", quotedCols));
+    }
+
+    if (!orderByList.isEmpty()) {
+      if (!partitionByColumns.isEmpty()) sql.append(" ");
+      sql.append(SqlClause.ORDER_BY.getSql()).append(" ");
+      List<String> orderSqls = new ArrayList<>();
+      for (OrderBy ob : orderByList) {
+        OrderBy.Resolved obr = ob.resolve(strategy, gen);
+        orderSqls.add(obr.sql());
+        allParams.putAll(obr.params());
+      }
+      sql.append(String.join(", ", orderSqls));
+    }
+
+    sql.append(")");
+    if (alias != null) {
+      sql.append(" ").append(SqlClause.AS.getSql()).append(" ").append(alias);
+    }
+
+    return new Resolved(sql.toString(), Collections.unmodifiableMap(allParams));
+  }
+
+  private static String quoteColumn(String col, QuoteStrategy strategy) {
+    return strategy.quoteQualified(col);
+  }
+
   /**
    * Renders this window function as a SQL string (e.g., "SUM(sales) OVER (PARTITION BY region ORDER
    * BY date DESC) AS total_sales"). The alias is included if it is set.
@@ -83,7 +131,9 @@ public class WindowFunction {
    */
   public String toSql() {
     StringBuilder sql = new StringBuilder();
-    sql.append(aggregate.toSqlWithoutAlias());
+    if (aggregate != null) {
+      sql.append(aggregate.toSqlWithoutAlias());
+    }
     sql.append(" ").append(SqlClause.OVER.getSql()).append(" (");
 
     if (!partitionByColumns.isEmpty()) {

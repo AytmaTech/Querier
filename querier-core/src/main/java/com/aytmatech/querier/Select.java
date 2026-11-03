@@ -272,7 +272,9 @@ public class Select {
           selectSqls.add(expr.toSql());
           allParams.putAll(expr.getParams());
         } else if (item instanceof WindowFunction wf) {
-          selectSqls.add(wf.toSql());
+          WindowFunction.Resolved wfr = wf.resolve(quoteStrategy, paramGen);
+          selectSqls.add(wfr.sql());
+          allParams.putAll(wfr.params());
         } else if (item instanceof CaseWhen caseWhen) {
           CaseWhen.Resolved r = caseWhen.resolve(quoteStrategy, paramGen);
           selectSqls.add(r.sql());

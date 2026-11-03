@@ -15,8 +15,8 @@ import java.util.regex.Pattern;
  * toSqlAndParams()} call gets a unique, sequential name ({@code param0}, {@code param1}, …).
  */
 public class Condition {
-  private static final Pattern TABLE_COLUMN_PATTERN =
-      Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\.([a-zA-Z_][a-zA-Z0-9_]*)\\b");
+  private static final Pattern QUALIFIED_IDENTIFIER_PATTERN =
+      Pattern.compile("\\b[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+\\b");
 
   /**
    * Functional interface for lazily resolving a Condition to SQL and parameters. This allows for
@@ -131,15 +131,12 @@ public class Condition {
    *     quoted according to the chosen strategy.
    */
   private static String applyQuoteStrategy(String sql, QuoteStrategy quoteStrategy) {
-    Matcher matcher = TABLE_COLUMN_PATTERN.matcher(sql);
+    Matcher matcher = QUALIFIED_IDENTIFIER_PATTERN.matcher(sql);
     StringBuilder result = new StringBuilder();
     int lastEnd = 0;
     while (matcher.find()) {
       result.append(sql, lastEnd, matcher.start());
-      result
-          .append(quoteStrategy.quote(matcher.group(1)))
-          .append(".")
-          .append(quoteStrategy.quote(matcher.group(2)));
+      result.append(quoteStrategy.quoteQualified(matcher.group()));
       lastEnd = matcher.end();
     }
     result.append(sql.substring(lastEnd));
@@ -196,7 +193,7 @@ public class Condition {
                   + " "
                   + SqlOperator.EQ.getSql()
                   + " "
-                  + qs.quote(tableAndColumnName.tableName())
+                  + qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName());
           return new Resolved(sql, new HashMap<>());
@@ -610,7 +607,7 @@ public class Condition {
           String p1 = gen.next();
           String p2 = gen.next();
           String sql =
-              qs.quote(tableAndColumnName.tableName())
+              qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName())
                   + " "
@@ -757,7 +754,7 @@ public class Condition {
         (qs, gen) -> {
           Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
           String sql =
-              qs.quote(tableAndColumnName.tableName())
+              qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName())
                   + " "
@@ -790,7 +787,7 @@ public class Condition {
         (qs, gen) -> {
           String paramName = gen.next();
           String sql =
-              qs.quote(tableAndColumnName.tableName())
+              qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName())
                   + " "
@@ -824,13 +821,13 @@ public class Condition {
     return new Condition(
         (qs, gen) -> {
           String sql =
-              qs.quote(tableAndColumnName1.tableName())
+              qs.quoteQualified(tableAndColumnName1.tableName())
                   + "."
                   + qs.quote(tableAndColumnName1.columnName())
                   + " "
                   + op.getSql()
                   + " "
-                  + qs.quote(tableAndColumnName2.tableName())
+                  + qs.quoteQualified(tableAndColumnName2.tableName())
                   + "."
                   + qs.quote(tableAndColumnName2.columnName());
           return new Resolved(sql, new HashMap<>());
@@ -858,7 +855,7 @@ public class Condition {
         (qs, gen) -> {
           String paramName = gen.next();
           String sql =
-              qs.quote(tableAndColumnName.tableName())
+              qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName())
                   + " "
@@ -986,7 +983,7 @@ public class Condition {
     return new Condition(
         (qs, gen) -> {
           String sql =
-              qs.quote(tableAndColumnName.tableName())
+              qs.quoteQualified(tableAndColumnName.tableName())
                   + "."
                   + qs.quote(tableAndColumnName.columnName())
                   + " "

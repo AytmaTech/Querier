@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 
 /** Represents an ORDER BY clause item. */
 public class OrderBy {
-  private static final Pattern TABLE_COLUMN_PATTERN =
-      Pattern.compile("\\b([a-zA-Z_][a-zA-Z0-9_]*)\\.([a-zA-Z_][a-zA-Z0-9_]*)\\b");
+  private static final Pattern QUALIFIED_IDENTIFIER_PATTERN =
+      Pattern.compile("\\b[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+\\b");
 
   private final String columnExpression;
   private final SortDirection direction;
@@ -162,7 +162,8 @@ public class OrderBy {
    *     CaseWhen-based order bys, this will be the params from the associated CaseWhen instance.
    */
   public Map<String, Object> getParams() {
-    return caseWhen != null ? caseWhen.getParams() : params;
+    if (caseWhen != null) return caseWhen.getParams();
+    return Map.copyOf(params);
   }
 
   /**
@@ -191,18 +192,13 @@ public class OrderBy {
     String quotedExpression = columnExpression;
 
     if (quoteStrategy != QuoteStrategy.NONE) {
-      Matcher matcher = TABLE_COLUMN_PATTERN.matcher(columnExpression);
+      Matcher matcher = QUALIFIED_IDENTIFIER_PATTERN.matcher(columnExpression);
       StringBuilder result = new StringBuilder();
       int lastEnd = 0;
 
       while (matcher.find()) {
         result.append(columnExpression, lastEnd, matcher.start());
-        String tableName = matcher.group(1);
-        String columnName = matcher.group(2);
-        result
-            .append(quoteStrategy.quote(tableName))
-            .append(".")
-            .append(quoteStrategy.quote(columnName));
+        result.append(quoteStrategy.quoteQualified(matcher.group()));
         lastEnd = matcher.end();
       }
       result.append(columnExpression.substring(lastEnd));
