@@ -1,5 +1,6 @@
 package com.aytmatech.querier.ai;
 
+import java.net.ProxySelector;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -40,6 +41,7 @@ public final class AiEndpoint {
   private final Map<String, String> headers;
   private final Duration connectTimeout;
   private final Duration requestTimeout;
+  private final ProxySelector proxySelector;
 
   private AiEndpoint(Builder b) {
     this.baseUrl = Objects.requireNonNull(b.baseUrl, "baseUrl must not be null");
@@ -48,6 +50,7 @@ public final class AiEndpoint {
     this.headers = Collections.unmodifiableMap(new LinkedHashMap<>(b.headers));
     this.connectTimeout = b.connectTimeout != null ? b.connectTimeout : Duration.ofSeconds(10);
     this.requestTimeout = b.requestTimeout != null ? b.requestTimeout : Duration.ofSeconds(60);
+    this.proxySelector = b.proxySelector != null ? b.proxySelector : ProxySelector.getDefault();
   }
 
   /**
@@ -132,6 +135,16 @@ public final class AiEndpoint {
     return requestTimeout;
   }
 
+  /**
+   * Returns the {@link ProxySelector} to use for HTTP requests. If not set, the system default
+   * proxy selector is used.
+   *
+   * @return ProxySelector to use for HTTP requests. Default: system default proxy selector.
+   */
+  public ProxySelector proxySelector() {
+    return proxySelector;
+  }
+
   /** Returns a safe string that deliberately omits the API key. */
   @Override
   public String toString() {
@@ -159,6 +172,7 @@ public final class AiEndpoint {
     private final Map<String, String> headers = new LinkedHashMap<>();
     private Duration connectTimeout;
     private Duration requestTimeout;
+    private ProxySelector proxySelector;
 
     private Builder() {}
 
@@ -228,6 +242,19 @@ public final class AiEndpoint {
      */
     public Builder requestTimeout(Duration requestTimeout) {
       this.requestTimeout = requestTimeout;
+      return this;
+    }
+
+    /**
+     * Sets the {@link ProxySelector} to use for HTTP requests. If not set, the system default proxy
+     * selector is used.
+     *
+     * @param proxySelector the {@link ProxySelector} to use for HTTP requests. If not set, the
+     *     system default proxy selector is used.
+     * @return this builder
+     */
+    public Builder proxySelector(ProxySelector proxySelector) {
+      this.proxySelector = proxySelector;
       return this;
     }
 

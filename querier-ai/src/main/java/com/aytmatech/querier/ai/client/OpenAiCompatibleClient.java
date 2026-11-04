@@ -45,7 +45,11 @@ public final class OpenAiCompatibleClient implements AiClient {
   public OpenAiCompatibleClient(AiEndpoint endpoint, AiCapabilities capabilities) {
     this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
     this.capabilities = Objects.requireNonNull(capabilities, "capabilities");
-    this.httpClient = HttpClient.newBuilder().connectTimeout(endpoint.connectTimeout()).build();
+    this.httpClient =
+        HttpClient.newBuilder()
+            .connectTimeout(endpoint.connectTimeout())
+            .proxy(endpoint.proxySelector())
+            .build();
   }
 
   @Override
