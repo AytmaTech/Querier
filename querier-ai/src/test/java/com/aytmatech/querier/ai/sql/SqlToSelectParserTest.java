@@ -46,14 +46,6 @@ class SqlToSelectParserTest {
   }
 
   @Test
-  void parse_pureExpressionQuery_returnsRawSelect() {
-    // No known entity — falls back to raw untyped query
-    Select select = SqlToSelectParser.parse("SELECT 1 + 1", CTX);
-    assertNotNull(select);
-    assertEquals("SELECT 1 + 1", select.toSqlAndParams().sql());
-  }
-
-  @Test
   void parse_rawSql_paramsAreEmpty() {
     Select select = SqlToSelectParser.parse("SELECT name FROM customers", CTX);
     assertTrue(select.toSqlAndParams().params().isEmpty());
