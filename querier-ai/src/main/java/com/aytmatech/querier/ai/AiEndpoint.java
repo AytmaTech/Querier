@@ -135,11 +135,12 @@ public final class AiEndpoint {
     return requestTimeout;
   }
 
-    /**
-     * Returns the {@link ProxySelector} to use for HTTP requests. If not set, the system default proxy selector is used.
-     *
-     * @return ProxySelector to use for HTTP requests. Default: system default proxy selector.
-     */
+  /**
+   * Returns the {@link ProxySelector} to use for HTTP requests. If not set, the system default
+   * proxy selector is used.
+   *
+   * @return ProxySelector to use for HTTP requests. Default: system default proxy selector.
+   */
   public ProxySelector proxySelector() {
     return proxySelector;
   }
@@ -244,12 +245,14 @@ public final class AiEndpoint {
       return this;
     }
 
-      /**
-       * Sets the {@link ProxySelector} to use for HTTP requests. If not set, the system default proxy selector is used.
-       *
-       * @param proxySelector the {@link ProxySelector} to use for HTTP requests. If not set, the system default proxy selector is used.
-       * @return this builder
-       */
+    /**
+     * Sets the {@link ProxySelector} to use for HTTP requests. If not set, the system default proxy
+     * selector is used.
+     *
+     * @param proxySelector the {@link ProxySelector} to use for HTTP requests. If not set, the
+     *     system default proxy selector is used.
+     * @return this builder
+     */
     public Builder proxySelector(ProxySelector proxySelector) {
       this.proxySelector = proxySelector;
       return this;
