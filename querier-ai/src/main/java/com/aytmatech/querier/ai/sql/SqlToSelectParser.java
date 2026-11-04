@@ -32,16 +32,22 @@ public final class SqlToSelectParser {
    * @param sql validated SQL string
    * @param context schema context for entity class resolution
    * @return a {@link Select} ready to execute
+   * @throws IllegalStateException if the sql and context are not producing a AiEntitySchema, this
+   *     should not happen if sql is passes {@link SqlSchemaValidator#validate} step.
    */
-  public static Select parse(String sql, AiSchemaContext context) {
+  public static Select parse(String sql, AiSchemaContext context) throws IllegalStateException {
     Map<String, AiEntitySchema> aliasMap = SqlAliasResolver.resolve(sql, context, null);
 
     AiEntitySchema primaryEntity = aliasMap.values().stream().findFirst().orElse(null);
 
-    if (primaryEntity != null) {
-      return Select.builder().from(primaryEntity.entityClass()).rawSql(sql).build();
+    if (primaryEntity == null) {
+      throw new IllegalStateException(
+          "No schema entity found in SQL; cannot construct typed Select. SQL: "
+              + sql
+              + ", Context: "
+              + context);
     }
 
-    return Select.rawQuery(sql);
+    return Select.builder().from(primaryEntity.entityClass()).rawSql(sql).build();
   }
 }
