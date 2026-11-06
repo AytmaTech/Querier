@@ -11,8 +11,19 @@ public class WindowFunction {
   private final List<OrderBy> orderByList;
   private String alias;
 
+  /** Vendor/custom function (null when aggregate is set). */
+  private final DbFunction dbFunction;
+
   private WindowFunction(Aggregate aggregate) {
     this.aggregate = aggregate;
+    this.dbFunction = null;
+    this.partitionByColumns = new ArrayList<>();
+    this.orderByList = new ArrayList<>();
+  }
+
+  private WindowFunction(DbFunction dbFunction) {
+    this.aggregate = null;
+    this.dbFunction = dbFunction;
     this.partitionByColumns = new ArrayList<>();
     this.orderByList = new ArrayList<>();
   }
@@ -25,6 +36,27 @@ public class WindowFunction {
    */
   public static WindowFunction of(Aggregate aggregate) {
     return new WindowFunction(aggregate);
+  }
+
+  /**
+   * Creates a window function from a vendor/custom database function. Use for analytic functions
+   * that have no equivalent in {@link Aggregate}: {@code LAG}, {@code LEAD}, {@code FIRST_VALUE},
+   * {@code LAST_VALUE}, {@code NTILE}, etc.
+   *
+   * <pre>{@code
+   * WindowFunction.of(PgFunctions.lag(Order::getTotal, 1, BigDecimal.ZERO))
+   *     .partitionBy(Order::getCustomerId)
+   *     .orderBy(OrderBy.asc(Order::getCreatedAt))
+   *     .as("prev_total")
+   * // → LAG(orders.total, 1, :param0) OVER (PARTITION BY orders.customer_id
+   * //       ORDER BY orders.created_at ASC) AS prev_total
+   * }</pre>
+   *
+   * @param fn The vendor/custom database function to use as the basis for this window function
+   * @return A new WindowFunction instance based on the provided database function
+   */
+  public static WindowFunction of(DbFunction fn) {
+    return new WindowFunction(fn);
   }
 
   /**
@@ -87,6 +119,10 @@ public class WindowFunction {
       Aggregate.Resolved aggResolved = aggregate.resolveWithoutAlias(strategy, gen);
       funcSql = aggResolved.sql();
       allParams.putAll(aggResolved.params());
+    } else if (dbFunction != null) {
+      DbFunction.Resolved fnResolved = dbFunction.resolveWithoutAlias(strategy, gen);
+      funcSql = fnResolved.sql();
+      allParams.putAll(fnResolved.params());
     }
 
     StringBuilder sql = new StringBuilder(funcSql);
@@ -133,6 +169,8 @@ public class WindowFunction {
     StringBuilder sql = new StringBuilder();
     if (aggregate != null) {
       sql.append(aggregate.toSqlWithoutAlias());
+    } else if (dbFunction != null) {
+      sql.append(dbFunction.toSqlWithoutAlias());
     }
     sql.append(" ").append(SqlClause.OVER.getSql()).append(" (");
 

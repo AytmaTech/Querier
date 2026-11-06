@@ -991,4 +991,198 @@ public class Condition {
           return new Resolved(sql, new HashMap<>());
         });
   }
+
+  /**
+   * dbFunction = value
+   *
+   * <pre>{@code Condition.eq(PgFunctions.dateTrunc("month", Order::getCreatedAt), startOfMonth)}
+   * </pre>
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction = :param"
+   */
+  public static Condition eq(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.EQ, value);
+  }
+
+  /**
+   * dbFunction != value
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction != :param"
+   */
+  public static Condition ne(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.NE, value);
+  }
+
+  /**
+   * dbFunction &gt; value
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction > :param"
+   */
+  public static Condition gt(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.GT, value);
+  }
+
+  /**
+   * dbFunction &lt; value
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction &lt; :param"
+   */
+  public static Condition lt(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.LT, value);
+  }
+
+  /**
+   * dbFunction &ge; value
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction &ge; :param"
+   */
+  public static Condition gte(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.GTE, value);
+  }
+
+  /**
+   * dbFunction &le; value
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param value the value to compare to (e.g., startOfMonth)
+   * @return a Condition representing the SQL condition "dbFunction &le; :param"
+   */
+  public static Condition lte(DbFunction fn, Object value) {
+    return dbFunctionValueCondition(fn, SqlOperator.LTE, value);
+  }
+
+  /**
+   * dbFunction LIKE pattern
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @param pattern the pattern to compare to (e.g., "%2024%")
+   * @return a Condition representing the SQL condition "dbFunction LIKE :param"
+   */
+  public static Condition like(DbFunction fn, String pattern) {
+    return dbFunctionValueCondition(fn, SqlOperator.LIKE, pattern);
+  }
+
+  /**
+   * dbFunction IS NULL
+   *
+   * @param fn the database function to check for null (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @return a Condition representing the SQL condition "dbFunction IS NULL"
+   */
+  public static Condition isNull(DbFunction fn) {
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          return new Resolved(r.sql() + " " + SqlOperator.IS_NULL.getSql(), r.params());
+        });
+  }
+
+  /**
+   * dbFunction IS NOT NULL
+   *
+   * @param fn the database function to check for not null (e.g., PgFunctions.dateTrunc("month",
+   *     Order::getCreatedAt))
+   * @return a Condition representing the SQL condition "dbFunction IS NOT NULL"
+   */
+  public static Condition isNotNull(DbFunction fn) {
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          return new Resolved(r.sql() + " " + SqlOperator.IS_NOT_NULL.getSql(), r.params());
+        });
+  }
+
+  /**
+   * dbFunction BETWEEN min AND max
+   *
+   * <pre>{@code Condition.between(PgFunctions.datePart("year", Order::getCreatedAt), 2022, 2025)}
+   * </pre>
+   *
+   * @param fn the database function to compare (e.g., PgFunctions.datePart("year",
+   *     Order::getCreatedAt))
+   * @param min the minimum value of the range (e.g., 2022)
+   * @param max the maximum value of the range (e.g., 2025)
+   * @return a Condition representing the SQL condition "dbFunction BETWEEN :min AND :max"
+   */
+  public static Condition between(DbFunction fn, Object min, Object max) {
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p1 = gen.next();
+          String p2 = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p1, min);
+          params.put(p2, max);
+          return new Resolved(
+              r.sql()
+                  + " "
+                  + SqlOperator.BETWEEN.getSql()
+                  + " :"
+                  + p1
+                  + " "
+                  + SqlOperator.AND.getSql()
+                  + " :"
+                  + p2,
+              params);
+        });
+  }
+
+  /**
+   * dbFunction IN (values)
+   *
+   * <pre>
+   * {@code Condition.in(MssqlFunctions.datePart("month", Order::getCreatedAt), List.of(1, 2, 3))}
+   * </pre>
+   *
+   * @param fn the database function to compare (e.g., MssqlFunctions.datePart("month",
+   *     Order::getCreatedAt))
+   * @param values the collection of values to compare to (e.g., List.of(1, 2, 3))
+   * @return a Condition representing the SQL condition "dbFunction IN (:param1, :param2, ...)"
+   */
+  public static Condition in(DbFunction fn, Collection<?> values) {
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p, values);
+          return new Resolved(r.sql() + " " + SqlOperator.IN.getSql() + " (:" + p + ")", params);
+        });
+  }
+
+  /**
+   * Private helper — builds a {@code dbFunction OP :param} condition.
+   *
+   * @param fn the database function to compare
+   * @param op the SQL operator (e.g., SqlOperator.EQ, SqlOperator.GT)
+   * @param value the value to compare to
+   * @return a Condition representing the SQL condition "dbFunction OP :param"
+   */
+  private static Condition dbFunctionValueCondition(DbFunction fn, SqlOperator op, Object value) {
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p, value);
+          return new Resolved(r.sql() + " " + op.getSql() + " :" + p, params);
+        });
+  }
 }

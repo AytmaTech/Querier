@@ -19,19 +19,28 @@ public class OrderBy {
   /** CaseWhen reference for deferred resolution (null for simple column/expression order bys). */
   private final CaseWhen caseWhen;
 
+  /** DbFunction reference for deferred resolution (null for simple/CaseWhen order bys). */
+  private final DbFunction dbFunction;
+
   private OrderBy(String columnExpression, SortDirection direction) {
-    this(columnExpression, direction, new HashMap<>(), null);
+    this(columnExpression, direction, new HashMap<>(), null, null);
+  }
+
+  private OrderBy(DbFunction dbFunction, SortDirection direction) {
+    this(null, direction, new HashMap<>(), null, dbFunction);
   }
 
   private OrderBy(
       String columnExpression,
       SortDirection direction,
       Map<String, Object> params,
-      CaseWhen caseWhen) {
+      CaseWhen caseWhen,
+      DbFunction dbFunction) {
     this.columnExpression = columnExpression;
     this.direction = direction;
     this.params = params;
     this.caseWhen = caseWhen;
+    this.dbFunction = dbFunction;
   }
 
   /**
@@ -114,7 +123,7 @@ public class OrderBy {
    *     CaseWhen
    */
   public static OrderBy asc(CaseWhen caseWhen) {
-    return new OrderBy(null, SortDirection.ASC, new HashMap<>(), caseWhen);
+    return new OrderBy(null, SortDirection.ASC, new HashMap<>(), caseWhen, null);
   }
 
   /**
@@ -127,7 +136,33 @@ public class OrderBy {
    *     CaseWhen
    */
   public static OrderBy desc(CaseWhen caseWhen) {
-    return new OrderBy(null, SortDirection.DESC, new HashMap<>(), caseWhen);
+    return new OrderBy(null, SortDirection.DESC, new HashMap<>(), caseWhen, null);
+  }
+
+  /**
+   * Creates an ascending ORDER BY clause from a vendor/custom database function.
+   *
+   * <pre>{@code OrderBy.asc(PgFunctions.dateTrunc("month", Order::getCreatedAt))}</pre>
+   *
+   * @param fn The database function to order by. This allows for vendor-specific or custom database
+   *     functions to be used directly in the ORDER BY clause.
+   * @return An OrderBy instance representing an ascending ORDER BY clause for the specified
+   *     database function
+   */
+  public static OrderBy asc(DbFunction fn) {
+    return new OrderBy(fn, SortDirection.ASC);
+  }
+
+  /**
+   * Creates a descending ORDER BY clause from a vendor/custom database function.
+   *
+   * @param fn The database function to order by. This allows for vendor-specific or custom database
+   *     functions to be used directly in the ORDER BY clause.
+   * @return An OrderBy instance representing a descending ORDER BY clause for the specified
+   *     database function
+   */
+  public static OrderBy desc(DbFunction fn) {
+    return new OrderBy(fn, SortDirection.DESC);
   }
 
   /**
@@ -147,6 +182,10 @@ public class OrderBy {
       CaseWhen.Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
       return new Resolved(cwResolved.sql() + " " + direction.getSql(), cwResolved.params());
     }
+    if (dbFunction != null) {
+      DbFunction.Resolved fnResolved = dbFunction.resolveWithoutAlias(quoteStrategy, gen);
+      return new Resolved(fnResolved.sql() + " " + direction.getSql(), fnResolved.params());
+    }
     return new Resolved(toSql(quoteStrategy), params);
   }
 
@@ -163,6 +202,7 @@ public class OrderBy {
    */
   public Map<String, Object> getParams() {
     if (caseWhen != null) return caseWhen.getParams();
+    if (dbFunction != null) return dbFunction.getParams();
     return Map.copyOf(params);
   }
 
@@ -187,6 +227,9 @@ public class OrderBy {
   public String toSql(QuoteStrategy quoteStrategy) {
     if (caseWhen != null) {
       return caseWhen.toSqlWithoutAlias(quoteStrategy) + " " + direction.getSql();
+    }
+    if (dbFunction != null) {
+      return dbFunction.toSqlWithoutAlias() + " " + direction.getSql();
     }
 
     String quotedExpression = columnExpression;
