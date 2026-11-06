@@ -279,6 +279,10 @@ public class Select {
           CaseWhen.Resolved r = caseWhen.resolve(quoteStrategy, paramGen);
           selectSqls.add(r.sql());
           allParams.putAll(r.params());
+        } else if (item instanceof DbFunction fn) {
+          DbFunction.Resolved r = fn.resolve(quoteStrategy, paramGen);
+          selectSqls.add(r.sql());
+          allParams.putAll(r.params());
         }
       }
       sql.append(String.join(", ", selectSqls));
@@ -602,6 +606,23 @@ public class Select {
      */
     public Builder select(CaseWhen caseWhen) {
       selectItems.add(caseWhen);
+      return this;
+    }
+
+    /**
+     * Adds a vendor-specific or custom database function to the SELECT list.
+     *
+     * <pre>{@code
+     * .select(PgFunctions.dateTrunc("month", Order::getCreatedAt).as("month"))
+     * .select(MySqlFunctions.dateFormat(Order::getCreatedAt, "%Y-%m").as("month"))
+     * .select(MssqlFunctions.format(Order::getCreatedAt, "yyyy-MM").as("month"))
+     * }</pre>
+     *
+     * @param fn the vendor function to select
+     * @return this builder for chaining
+     */
+    public Builder select(DbFunction fn) {
+      selectItems.add(fn);
       return this;
     }
 
