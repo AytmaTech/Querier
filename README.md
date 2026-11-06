@@ -15,6 +15,7 @@ pattern with method references for compile-time safety.
 - ✅ **JPA Compatible**: Supports both custom annotations and standard JPA annotations (`jakarta.persistence` or `javax.persistence`)
 - ✅ **Zero runtime dependencies**: Lightweight library with no external dependencies (JPA is optional)
 - ✅ **Java 17+**: Built with modern Java features
+- ✅ **Database Functions**: Type-safe SQL function calls for PostgreSQL, MySQL/MariaDB, SQL Server, and Oracle — via vendor dialect factories or fully custom resolvers
 - ✅ **Server-side Dashboards** *(optional)*: Generate Chart.js-powered HTML dashboards directly from your Querier queries — no JavaScript required
 - ✅ **AI-powered queries and dashboards** *(optional)*: Translate natural-language prompts into validated `Select` or `Dashboard` objects — bring your own key, works with any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, Mistral, Ollama, etc.)
 
@@ -610,6 +611,264 @@ Select select = Select.builder()
 // SQL: SELECT DISTINCT orders.status FROM orders
 ```
 
+### Database Functions
+
+`DbFunction` enables type-safe SQL function calls — vendor-specific or fully custom — usable in SELECT lists, WHERE conditions, ORDER BY clauses, and window function frames.
+
+#### Using Vendor Dialect Factories
+
+Each supported database has a dedicated factory class. Import the one that matches your target database:
+
+| Factory class | Database |
+|---|---|
+| `PgDialectFunctions` | PostgreSQL |
+| `MySqlDialectFunctions` | MySQL / MariaDB |
+| `MsSqlDialectFunctions` | SQL Server / Azure SQL |
+| `OracleDialectFunctions` | Oracle Database |
+
+**PostgreSQL example — date truncation in SELECT:**
+```java
+import com.aytmatech.querier.vendor.PgDialectFunctions;
+
+Select select = Select.builder()
+    .select(PgDialectFunctions.dateTrunc("month", Order::getCreatedAt).as("month"))
+    .select(Aggregate.sum(Order::getTotal).as("monthly_revenue"))
+    .from(Order.class)
+    .groupBy(Expression.raw("DATE_TRUNC('month', orders.created_at)"))
+    .orderBy(OrderBy.asc("DATE_TRUNC('month', orders.created_at)"))
+    .build();
+// SQL: SELECT DATE_TRUNC('month', orders.created_at) AS month,
+//            SUM(orders.total) AS monthly_revenue
+//      FROM orders
+//      GROUP BY DATE_TRUNC('month', orders.created_at)
+//      ORDER BY DATE_TRUNC('month', orders.created_at) ASC
+```
+
+**MySQL example — null fallback and string formatting:**
+```java
+import com.aytmatech.querier.vendor.MySqlDialectFunctions;
+
+Select select = Select.builder()
+    .select(Order::getId)
+    .select(MySqlDialectFunctions.ifNull(Order::getNotes, "N/A").as("notes"))
+    .select(MySqlDialectFunctions.dateFormat(Order::getCreatedAt, "%Y-%m-%d").as("order_date"))
+    .from(Order.class)
+    .build();
+// SQL: SELECT orders.id,
+//            IFNULL(orders.notes, :param0) AS notes,
+//            DATE_FORMAT(orders.created_at, :param1) AS order_date
+//      FROM orders
+```
+
+**SQL Server example — conditional logic:**
+```java
+import com.aytmatech.querier.vendor.MsSqlDialectFunctions;
+
+Select select = Select.builder()
+    .select(Order::getId)
+    .select(MsSqlDialectFunctions.isNull(Order::getNotes, "N/A").as("notes"))
+    .select(MsSqlDialectFunctions.format(Order::getCreatedAt, "yyyy-MM").as("month"))
+    .from(Order.class)
+    .build();
+// SQL: SELECT orders.id,
+//            ISNULL(orders.notes, :param0) AS notes,
+//            FORMAT(orders.created_at, :param1) AS month
+//      FROM orders
+```
+
+**Oracle example — date handling:**
+```java
+import com.aytmatech.querier.vendor.OracleDialectFunctions;
+
+Select select = Select.builder()
+    .select(Order::getId)
+    .select(OracleDialectFunctions.toChar(Order::getCreatedAt, "YYYY-MM").as("month"))
+    .select(OracleDialectFunctions.nvl(Order::getNotes, "N/A").as("notes"))
+    .from(Order.class)
+    .build();
+// SQL: SELECT orders.id,
+//            TO_CHAR(orders.created_at, :param0) AS month,
+//            NVL(orders.notes, :param1) AS notes
+//      FROM orders
+```
+
+#### DbFunction in WHERE Conditions
+
+```java
+Select select = Select.builder()
+    .select(Order::getId).select(Order::getTotal)
+    .from(Order.class)
+    .where(Condition.eq(PgDialectFunctions.dateTrunc("month", Order::getCreatedAt),
+                        "2024-01-01"))
+    .build();
+// SQL: SELECT orders.id, orders.total FROM orders
+//      WHERE DATE_TRUNC('month', orders.created_at) = :param0
+```
+
+#### DbFunction in ORDER BY
+
+```java
+Select select = Select.builder()
+    .select(Order::getId)
+    .from(Order.class)
+    .orderBy(OrderBy.asc(PgDialectFunctions.lower(Order::getStatus)))
+    .build();
+// SQL: SELECT orders.id FROM orders ORDER BY LOWER(orders.status) ASC
+```
+
+#### DbFunction inside Window Functions
+
+```java
+Select select = Select.builder()
+    .select(Order::getId)
+    .select(WindowFunction.of(PgDialectFunctions.dateTrunc("month", Order::getCreatedAt))
+        .partitionBy(Order::getCustomerId)
+        .as("month_bucket"))
+    .from(Order.class)
+    .build();
+```
+
+#### Custom Functions with `DbFunction.of()`
+
+For functions not covered by a dialect factory, use `DbFunction.of()` directly:
+
+```java
+// COALESCE with a column and a fallback value
+DbFunction coalesce = DbFunction.of("COALESCE",
+    DbFunction.col(Order::getNotes),
+    DbFunction.val("N/A")
+);
+// SQL fragment: COALESCE(orders.notes, :param0)
+
+// Function with a raw SQL suffix (e.g. STRING_AGG with ORDER BY)
+DbFunction stringAgg = DbFunction.of("STRING_AGG",
+    List.of(DbFunction.col(Order::getStatus), DbFunction.lit(", ")),
+    " ORDER BY orders.status ASC"
+);
+// SQL fragment: STRING_AGG(orders.status, ', ' ORDER BY orders.status ASC)
+```
+
+Available `DbFunction.Arg` factory methods:
+
+| Method | Rendered as | Use for |
+|---|---|---|
+| `DbFunction.col(Order::getField)` | `table.column` (quoted) | Type-safe column references |
+| `DbFunction.val(value)` | `:paramN` | Dynamic bound values |
+| `DbFunction.lit("text")` | `'text'` | Constant string arguments (date units, formats) |
+| `DbFunction.nested(fn)` | inner function SQL | Composed / nested function calls |
+| `DbFunction.raw("SQL")` | verbatim SQL | Keywords, type names, integer constants |
+
+#### Fully Custom Functions with `DbFunction.custom()`
+
+For non-standard syntax (e.g., `CAST(col AS type)`, `EXTRACT(field FROM col)`), implement the `DbFunction.Resolver` interface:
+
+```java
+DbFunction extractYear = DbFunction.custom((strategy, gen) -> {
+    NameResolver.TableAndColumnName tcn = NameResolver.resolve(Order::getCreatedAt);
+    String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+    return new DbFunction.Resolved("EXTRACT(YEAR FROM " + colSql + ")", Map.of());
+});
+// SQL fragment: EXTRACT(YEAR FROM orders.created_at)
+```
+
+#### Available Functions by Dialect
+
+<details>
+<summary><strong>PostgreSQL</strong> — <code>PgDialectFunctions</code></summary>
+
+**Date / Time**
+`dateTrunc(unit, col)`, `datePart(field, col)`, `extract(field, col)`, `toChar(col, format)`, `age(col)`, `age(end, start)`, `now()`
+
+**String**
+`upper(col)`, `lower(col)`, `initcap(col)`, `trim(col)`, `length(col)`, `left(col, n)`, `right(col, n)`, `lpad(col, length, fill)`, `rpad(col, length, fill)`, `concat(cols...)`, `concatWs(separator, cols...)`, `regexpReplace(col, pattern, replacement)`, `regexpReplace(col, pattern, replacement, flags)`, `stringAgg(col, separator)`, `stringAggOrdered(col, separator, orderCol, direction)`
+
+**Array / JSON**
+`arrayAgg(col)`, `arrayLength(col, dimension)`, `unnest(col)`, `jsonbExtractPathText(col, keys...)`, `jsonbExtractPath(col, keys...)`, `toJsonb(col)`
+
+**Conditional / Null**
+`coalesce(col, default)`, `coalesce(cols...)`, `nullif(col, value)`, `greatest(cols...)`, `least(cols...)`
+
+**Math**
+`round(col, places)`, `floor(col)`, `ceil(col)`, `abs(col)`, `sqrt(col)`, `power(col, exponent)`
+
+**Type**
+`cast(col, pgType)`
+
+**Window**
+`lag(col, offset, default)`, `lead(col, offset, default)`, `firstValue(col)`, `lastValue(col)`, `nthValue(col, n)`
+</details>
+
+<details>
+<summary><strong>MySQL / MariaDB</strong> — <code>MySqlDialectFunctions</code></summary>
+
+**Date / Time**
+`dateFormat(col, format)`, `strToDate(col, format)`, `dateDiff(end, start)`, `dateAdd(col, amount, unit)`, `dateSub(col, amount, unit)`, `year(col)`, `month(col)`, `day(col)`, `hour(col)`, `minute(col)`, `second(col)`, `week(col)`, `quarter(col)`, `lastDay(col)`
+
+**String**
+`upper(col)`, `lower(col)`, `trim(col)`, `length(col)`, `charLength(col)`, `left(col, n)`, `right(col, n)`, `substring(col, start, length)`, `lpad(col, length, fill)`, `rpad(col, length, fill)`, `concat(cols...)`, `concatWs(separator, cols...)`, `groupConcat(col)`, `groupConcat(col, separator)`, `instr(col, search)`, `findInSet(needle, col)`
+
+**JSON**
+`jsonExtract(col, paths...)`, `jsonValue(col, path)`, `jsonArrayAgg(col)`, `jsonObjectAgg(keyCol, valueCol)`
+
+**Math**
+`round(col, dp)`, `truncate(col, dp)`, `floor(col)`, `ceiling(col)`, `abs(col)`, `sqrt(col)`, `pow(col, exponent)`, `sign(col)`
+
+**Conditional / Null**
+`ifNull(col, default)`, `nullif(col, value)`, `coalesce(col, default)`
+
+**Type**
+`cast(col, mysqlType)`
+</details>
+
+<details>
+<summary><strong>SQL Server / Azure SQL</strong> — <code>MsSqlDialectFunctions</code></summary>
+
+**Date / Time**
+`datePart(unit, col)`, `dateDiff(unit, start, end)`, `dateAdd(unit, amount, col)`, `format(col, format)`, `eoMonth(col)`
+
+**String**
+`upper(col)`, `lower(col)`, `trim(col)`, `len(col)`, `left(col, n)`, `right(col, n)`, `substring(col, start, length)`, `charIndex(search, col)`, `patIndex(pattern, col)`, `stuff(col, start, length, replacement)`, `concatWs(separator, cols...)`, `stringAgg(col, separator)`
+
+**JSON**
+`jsonValue(col, path)`, `jsonQuery(col, path)`
+
+**Math**
+`round(col, length)`, `ceiling(col)`, `floor(col)`, `abs(col)`, `sqrt(col)`, `power(col, exponent)`, `sign(col)`
+
+**Conditional / Null**
+`isNull(col, replacement)`, `nullif(col, value)`, `coalesce(col, default)`, `iif(col, trueResult, falseResult)`, `choose(col, options...)`
+
+**Type**
+`cast(col, sqlServerType)`, `tryCast(col, sqlServerType)`, `convert(sqlServerType, col, style)`
+
+**Window**
+`lag(col, offset, default)`, `lead(col, offset, default)`, `firstValue(col)`, `lastValue(col)`, `ntile(n)`
+</details>
+
+<details>
+<summary><strong>Oracle Database</strong> — <code>OracleDialectFunctions</code></summary>
+
+**Date / Time**
+`trunc(col, format)`, `trunc(col, places)`, `addMonths(col, months)`, `monthsBetween(end, start)`, `lastDay(col)`, `nextDay(col, dayName)`, `extract(field, col)`, `toDate(col, format)`, `toTimestamp(col, format)`, `toChar(col, format)`, `sysdate()`, `systimestamp()`
+
+**String**
+`upper(col)`, `lower(col)`, `initcap(col)`, `trim(col)`, `ltrim(col)`, `rtrim(col)`, `length(col)`, `substr(col, start, length)`, `instr(col, search)`, `lpad(col, length, fill)`, `rpad(col, length, fill)`, `replace(col, search, replacement)`, `regexpReplace(col, pattern, replacement)`, `regexpSubstr(col, pattern)`, `concat(col1, col2)`, `listagg(col, separator, orderCol)`
+
+**JSON**
+`jsonValue(col, path)`, `jsonQuery(col, path)`
+
+**Math**
+`round(col, places)`, `ceil(col)`, `floor(col)`, `abs(col)`, `sqrt(col)`, `power(col, exponent)`, `sign(col)`, `mod(col, divisor)`
+
+**Conditional / Null**
+`nvl(col, default)`, `nvl2(col, notNullVal, nullVal)`, `coalesce(col, default)`, `nullif(col, value)`, `decode(col, when, then, ...)`
+
+**Type**
+`cast(col, oracleType)`, `toNumber(col)`, `toNumber(col, format)`
+
+**Window**
+`lag(col, offset, default)`, `lead(col, offset, default)`, `firstValue(col)`, `lastValue(col)`, `nthValue(col, n)`, `ntile(n)`
+</details>
 ---
 
 ## Dashboards *(querier-ui)*
@@ -914,6 +1173,17 @@ Use `RetryPolicy.disabled()` (the default) to turn off retries.
 - **`SqlClause`** - Enum for clause keywords used in SELECT statements
 - **`SqlOperator`** - Enum for comparison and logical operators
 - **`SqlValue`** - Enum for special SQL values
+- **`DbFunction`** - Type-safe SQL function call builder; supports vendor dialect factories and fully custom resolvers
+- **`DbFunction.Arg`** - Sealed interface for function arguments: `Col` (column ref), `Val` (bound value), `Lit` (string literal), `Nested` (inner function), `RawSql` (verbatim SQL)
+- **`DbFunction.Resolved`** - Record holding the rendered SQL fragment and its parameter map
+- **`DbFunction.Resolver`** - Functional interface for custom SQL resolution logic
+
+### Vendor Dialect Classes (`querier-core`)
+
+- **`PgDialectFunctions`** - PostgreSQL-specific SQL functions (date, string, array, JSON, math, window)
+- **`MySqlDialectFunctions`** - MySQL / MariaDB-specific SQL functions (date, string, JSON, math, conditional)
+- **`MsSqlDialectFunctions`** - SQL Server / Azure SQL-specific SQL functions (date, string, JSON, math, conditional, window)
+- **`OracleDialectFunctions`** - Oracle Database-specific SQL functions (date, string, JSON, math, conditional, window)
 
 ### Dashboard Classes (`querier-ui`)
 
@@ -932,7 +1202,7 @@ Use `RetryPolicy.disabled()` (the default) to turn off retries.
 
 - **`QuerierAi`** - Primary entry point: `.query()` for natural-language → `Select`, `.dashboard()` for AI-generated dashboards
 - **`AiClient`** - Provider-neutral interface to any OpenAI-compatible endpoint
-- **`AiEndpoint`** - Immutable endpoint configuration (base URL, API key, model, timeouts)
+- **`AiEndpoint`** - Immutable endpoint configuration (base URL, API key, model, timeouts, network proxy)
 - **`AiCapabilities`** - Declares which features the configured endpoint/model supports
 - **`QueryRequest`** - Input object containing the natural-language prompt, schema context, and request options
 - **`QueryResult`** - Result of a `.query()` call — holds the compiled `Select` or validation issues

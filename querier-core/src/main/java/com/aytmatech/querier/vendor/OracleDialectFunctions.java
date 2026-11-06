@@ -875,7 +875,8 @@ public final class OracleDialectFunctions {
 
   /**
    * {@code NTILE(n)} — Divides rows into {@code n} roughly equal buckets and returns the bucket
-   * number for each row. Use with {@code WindowFunction.of(OracleDialectFunctions.ntile(4)).orderBy(...)}.
+   * number for each row. Use with {@code
+   * WindowFunction.of(OracleDialectFunctions.ntile(4)).orderBy(...)}.
    *
    * @param n the number of buckets to divide the rows into (must be a constant)
    * @return a {@link DbFunction} representing the NTILE operation
