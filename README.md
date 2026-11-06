@@ -635,12 +635,14 @@ Select select = Select.builder()
     .select(Aggregate.sum(Order::getTotal).as("monthly_revenue"))
     .from(Order.class)
     .groupBy(Expression.raw("DATE_TRUNC('month', orders.created_at)"))
+    .groupBy(Order::getCreatedAt)
+    .groupBy(Order::getTotal)
     .orderBy(OrderBy.asc("DATE_TRUNC('month', orders.created_at)"))
     .build();
 // SQL: SELECT DATE_TRUNC('month', orders.created_at) AS month,
 //            SUM(orders.total) AS monthly_revenue
 //      FROM orders
-//      GROUP BY DATE_TRUNC('month', orders.created_at)
+//      GROUP BY DATE_TRUNC('month', orders.created_at), orders.created_at, orders.total
 //      ORDER BY DATE_TRUNC('month', orders.created_at) ASC
 ```
 
