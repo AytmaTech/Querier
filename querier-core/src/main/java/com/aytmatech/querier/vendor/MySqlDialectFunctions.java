@@ -92,14 +92,13 @@ public final class MySqlDialectFunctions {
    */
   public static <T, R> DbFunction dateAdd(ColumnRef<T, R> col, Number amount, String unit) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          String p = gen.next();
-          return new DbFunction.Resolved(
-              "DATE_ADD(" + colSql + ", INTERVAL :" + p + " " + unit.toUpperCase() + ")",
-              Map.of(p, amount));
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      String p = gen.next();
+      return new DbFunction.Resolved(
+          "DATE_ADD(" + colSql + ", INTERVAL :" + p + " " + unit.toUpperCase() + ")",
+          Map.of(p, amount));
+    });
   }
 
   /**
@@ -114,14 +113,13 @@ public final class MySqlDialectFunctions {
    */
   public static <T, R> DbFunction dateSub(ColumnRef<T, R> col, Number amount, String unit) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          String p = gen.next();
-          return new DbFunction.Resolved(
-              "DATE_SUB(" + colSql + ", INTERVAL :" + p + " " + unit.toUpperCase() + ")",
-              Map.of(p, amount));
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      String p = gen.next();
+      return new DbFunction.Resolved(
+          "DATE_SUB(" + colSql + ", INTERVAL :" + p + " " + unit.toUpperCase() + ")",
+          Map.of(p, amount));
+    });
   }
 
   /**
@@ -425,13 +423,12 @@ public final class MySqlDialectFunctions {
    */
   public static <T, R> DbFunction groupConcat(ColumnRef<T, R> col, String separator) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved(
-              "GROUP_CONCAT(" + colSql + " SEPARATOR '" + separator.replace("'", "''") + "')",
-              Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved(
+          "GROUP_CONCAT(" + colSql + " SEPARATOR '" + separator.replace("'", "''") + "')",
+          Map.of());
+    });
   }
 
   /**
@@ -675,10 +672,9 @@ public final class MySqlDialectFunctions {
    */
   public static <T, R> DbFunction cast(ColumnRef<T, R> col, String mysqlType) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved("CAST(" + colSql + " AS " + mysqlType + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved("CAST(" + colSql + " AS " + mysqlType + ")", Map.of());
+    });
   }
 }

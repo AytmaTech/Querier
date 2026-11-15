@@ -385,53 +385,53 @@ public class DashboardRenderer {
 
   private String buildCss() {
     return """
-                    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-                                     Helvetica, Arial, sans-serif;
-                        background: #f5f6fa;
-                        color: #333;
-                        padding: 28px;
-                    }
-                    .dashboard-title {
-                        font-size: 1.75rem;
-                        font-weight: 700;
-                        margin-bottom: 28px;
-                        color: #1a1a2e;
-                    }
-                    .querier-grid {
-                        display: grid;
-                        gap: 24px;
-                    }
-                    .querier-grid--1       { grid-template-columns: 1fr; }
-                    .querier-grid--2       { grid-template-columns: repeat(2, 1fr); }
-                    .querier-grid--3       { grid-template-columns: repeat(3, 1fr); }
-                    .querier-grid--masonry { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
-                    .querier-widget {
-                        background: #ffffff;
-                        border-radius: 14px;
-                        padding: 22px 24px;
-                        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
-                    }
-                    .querier-widget__title {
-                        font-size: 0.95rem;
-                        font-weight: 600;
-                        color: #555;
-                        margin-bottom: 18px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.04em;
-                    }
-                    .querier-widget__canvas-wrapper {
-                        position: relative;
-                        width: 100%;
-                    }
-                    @media (max-width: 900px) {
-                        .querier-grid--2, .querier-grid--3 { grid-template-columns: 1fr; }
-                    }
-                    @media (max-width: 600px) {
-                        .querier-grid--masonry { grid-template-columns: 1fr; }
-                    }
-                """;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         Helvetica, Arial, sans-serif;
+            background: #f5f6fa;
+            color: #333;
+            padding: 28px;
+        }
+        .dashboard-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+            color: #1a1a2e;
+        }
+        .querier-grid {
+            display: grid;
+            gap: 24px;
+        }
+        .querier-grid--1       { grid-template-columns: 1fr; }
+        .querier-grid--2       { grid-template-columns: repeat(2, 1fr); }
+        .querier-grid--3       { grid-template-columns: repeat(3, 1fr); }
+        .querier-grid--masonry { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+        .querier-widget {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 22px 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+        }
+        .querier-widget__title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .querier-widget__canvas-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        @media (max-width: 900px) {
+            .querier-grid--2, .querier-grid--3 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 600px) {
+            .querier-grid--masonry { grid-template-columns: 1fr; }
+        }
+    """;
   }
 
   /** Escapes a value for safe use inside an HTML attribute or text node. */

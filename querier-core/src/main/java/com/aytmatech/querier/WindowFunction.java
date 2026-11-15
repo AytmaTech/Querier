@@ -108,15 +108,12 @@ public class WindowFunction {
     return alias;
   }
 
-  /** Package-private: resolves this window function with the shared param generator. */
-  record Resolved(String sql, Map<String, Object> params) {}
-
   Resolved resolve(QuoteStrategy strategy, ParamNameGenerator gen) {
     Map<String, Object> allParams = new LinkedHashMap<>();
 
     String funcSql = "";
     if (aggregate != null) {
-      Aggregate.Resolved aggResolved = aggregate.resolveWithoutAlias(strategy, gen);
+      Resolved aggResolved = aggregate.resolveWithoutAlias(strategy, gen);
       funcSql = aggResolved.sql();
       allParams.putAll(aggResolved.params());
     } else if (dbFunction != null) {
@@ -140,7 +137,7 @@ public class WindowFunction {
       sql.append(SqlClause.ORDER_BY.getSql()).append(" ");
       List<String> orderSqls = new ArrayList<>();
       for (OrderBy ob : orderByList) {
-        OrderBy.Resolved obr = ob.resolve(strategy, gen);
+        Resolved obr = ob.resolve(strategy, gen);
         orderSqls.add(obr.sql());
         allParams.putAll(obr.params());
       }

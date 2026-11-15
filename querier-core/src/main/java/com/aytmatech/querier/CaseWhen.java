@@ -31,9 +31,6 @@ public class CaseWhen {
   private static final Pattern QUALIFIED_IDENTIFIER_PATTERN =
       Pattern.compile("\\b[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+\\b");
 
-  /** Holds a fully-resolved SQL fragment and its bound parameters. */
-  record Resolved(String sql, Map<String, Object> params) {}
-
   private final List<WhenClause> whenClauses;
   private final AtomicBoolean hasElse = new AtomicBoolean(false);
   private final AtomicReference<Object> elseValue = new AtomicReference<>(null);
@@ -121,7 +118,7 @@ public class CaseWhen {
     Map<String, Object> allParams = new HashMap<>();
 
     for (WhenClause wc : whenClauses) {
-      Condition.Resolved condResolved = wc.condition.resolve(quoteStrategy, gen);
+      Resolved condResolved = wc.condition.resolve(quoteStrategy, gen);
       String thenParamName = gen.next();
       sql.append(" ").append(CaseKeyword.WHEN.getSql()).append(" ").append(condResolved.sql());
       sql.append(" ").append(CaseKeyword.THEN.getSql()).append(" :").append(thenParamName);
@@ -266,13 +263,5 @@ public class CaseWhen {
   }
 
   /** Represents a WHEN-THEN clause. */
-  private static class WhenClause {
-    final Condition condition;
-    final Object thenValue;
-
-    WhenClause(Condition condition, Object thenValue) {
-      this.condition = condition;
-      this.thenValue = thenValue;
-    }
-  }
+  private record WhenClause(Condition condition, Object thenValue) {}
 }

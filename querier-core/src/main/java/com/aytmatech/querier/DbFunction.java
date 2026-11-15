@@ -41,7 +41,9 @@ public final class DbFunction {
    *
    * @param sql the SQL fragment
    * @param params the bound parameters
+   * @deprecated Use {@link com.aytmatech.querier.Resolved} instead
    */
+  @Deprecated(forRemoval = true)
   public record Resolved(String sql, Map<String, Object> params) {
 
     /**
@@ -49,7 +51,9 @@ public final class DbFunction {
      *
      * @param sql the SQL fragment
      * @param params the bound parameters
+     * @deprecated Use {@link com.aytmatech.querier.Resolved#Resolved(String, Map)} instead
      */
+    @Deprecated(forRemoval = true)
     public Resolved(String sql, Map<String, Object> params) {
       this.sql = sql;
       this.params = Map.copyOf(params);
@@ -67,8 +71,11 @@ public final class DbFunction {
    *     return new DbFunction.Resolved("CAST(" + colSql + " AS TEXT)", Map.of());
    * })
    * }</pre>
+   *
+   * @deprecated Use {@link com.aytmatech.querier.Resolver} instead
    */
   @FunctionalInterface
+  @Deprecated(forRemoval = true)
   public interface Resolver {
 
     /**
@@ -77,7 +84,10 @@ public final class DbFunction {
      * @param strategy the quoting strategy to apply to table and column names
      * @param gen the parameter name generator to use for any bound parameters
      * @return a {@code Resolved} instance containing the SQL fragment and bound parameters
+     * @deprecated Use {@link com.aytmatech.querier.Resolver#resolve(QuoteStrategy,
+     *     ParamNameGenerator)} instead
      */
+    @Deprecated(forRemoval = true)
     Resolved resolve(QuoteStrategy strategy, ParamNameGenerator gen);
   }
 
@@ -223,18 +233,17 @@ public final class DbFunction {
    */
   public static DbFunction of(String name, List<Arg> args, String suffix) {
     List<Arg> immutableArgs = List.copyOf(args);
-    return new DbFunction(
-        (strategy, gen) -> {
-          StringBuilder sb = new StringBuilder(name).append("(");
-          Map<String, Object> params = new LinkedHashMap<>();
-          for (int i = 0; i < immutableArgs.size(); i++) {
-            if (i > 0) sb.append(", ");
-            appendArg(immutableArgs.get(i), sb, params, strategy, gen);
-          }
-          sb.append(")");
-          if (suffix != null) sb.append(suffix);
-          return new Resolved(sb.toString(), Collections.unmodifiableMap(params));
-        });
+    return new DbFunction((strategy, gen) -> {
+      StringBuilder sb = new StringBuilder(name).append("(");
+      Map<String, Object> params = new LinkedHashMap<>();
+      for (int i = 0; i < immutableArgs.size(); i++) {
+        if (i > 0) sb.append(", ");
+        appendArg(immutableArgs.get(i), sb, params, strategy, gen);
+      }
+      sb.append(")");
+      if (suffix != null) sb.append(suffix);
+      return new Resolved(sb.toString(), Collections.unmodifiableMap(params));
+    });
   }
 
   /**
