@@ -430,6 +430,19 @@ Select select = Select.builder()
 // SQL: SELECT orders.id, orders.total FROM orders
 ```
 
+### Column Aliases
+
+When selecting a column via method reference, you can assign an alias using `.select(ColumnRef<T, R> columnRef, String alias)`:
+
+```java
+Select select = Select.builder()
+        .select(Order::getId, "order_id")
+        .select(Order::getTotal, "amount")
+        .from(Order.class)
+        .build();
+// SQL: SELECT orders.id AS order_id, orders.total AS amount FROM orders
+```
+
 ### WHERE Conditions
 
 ```java
@@ -762,13 +775,13 @@ Available `DbFunction.Arg` factory methods:
 
 #### Fully Custom Functions with `DbFunction.custom()`
 
-For non-standard syntax (e.g., `CAST(col AS type)`, `EXTRACT(field FROM col)`), implement the `DbFunction.Resolver` interface:
+For non-standard syntax (e.g., `CAST(col AS type)`, `EXTRACT(field FROM col)`), implement the `Resolver` interface:
 
 ```java
 DbFunction extractYear = DbFunction.custom((strategy, gen) -> {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(Order::getCreatedAt);
     String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-    return new DbFunction.Resolved("EXTRACT(YEAR FROM " + colSql + ")", Map.of());
+    return new Resolved("EXTRACT(YEAR FROM " + colSql + ")", Map.of());
 });
 // SQL fragment: EXTRACT(YEAR FROM orders.created_at)
 ```
@@ -1075,7 +1088,12 @@ QueryRequest request = QueryRequest.builder()
     .build();
 ```
 
-Or build an `AiSchemaContext` manually for full control.
+Or build an `AiSchemaContext` manually for full control:
+
+```java
+AiSchemaContext ctx = AiSchemaInspector.inspect(Product.class);
+AiSchemaContext ctxWithDbDialect = AiSchemaInspector.inspect("PostgreSQL", Product.class);
+```
 
 ### Natural-Language Queries
 
@@ -1177,8 +1195,8 @@ Use `RetryPolicy.disabled()` (the default) to turn off retries.
 - **`SqlValue`** - Enum for special SQL values
 - **`DbFunction`** - Type-safe SQL function call builder; supports vendor dialect factories and fully custom resolvers
 - **`DbFunction.Arg`** - Sealed interface for function arguments: `Col` (column ref), `Val` (bound value), `Lit` (string literal), `Nested` (inner function), `RawSql` (verbatim SQL)
-- **`DbFunction.Resolved`** - Record holding the rendered SQL fragment and its parameter map
-- **`DbFunction.Resolver`** - Functional interface for custom SQL resolution logic
+- **`Resolved`** - Record holding the rendered SQL fragment and its parameter map
+- **`Resolver`** - Functional interface for custom SQL resolution logic
 
 ### Vendor Dialect Classes (`querier-core`)
 
