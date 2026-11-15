@@ -56,25 +56,25 @@ class QuerierAiQueryTest {
 
   private static final String VALID_SQL_JSON =
       """
-            {"sql": "SELECT c.name FROM customers c", "ambiguous": false, "ambiguityNote": null}
-            """;
+      {"sql": "SELECT c.name FROM customers c", "ambiguous": false, "ambiguityNote": null}
+      """;
 
   private static final String AMBIGUOUS_JSON =
       """
-            {"sql": null, "ambiguous": true, "ambiguityNote": "Request was too vague"}
-            """;
+      {"sql": null, "ambiguous": true, "ambiguityNote": "Request was too vague"}
+      """;
 
   private static final String MALFORMED_JSON = "not-json{{";
 
   private static final String EMPTY_SQL_JSON =
       """
-            {"sql": "", "ambiguous": false, "ambiguityNote": null}
-            """;
+      {"sql": "", "ambiguous": false, "ambiguityNote": null}
+      """;
 
   private static final String UNKNOWN_TABLE_SQL_JSON =
       """
-            {"sql": "SELECT o.id FROM orders o", "ambiguous": false, "ambiguityNote": null}
-            """;
+      {"sql": "SELECT o.id FROM orders o", "ambiguous": false, "ambiguityNote": null}
+      """;
 
   // ---- helpers ------------------------------------------------------------
 

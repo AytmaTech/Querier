@@ -37,6 +37,22 @@ public final class AiSchemaInspector {
   }
 
   /**
+   * Inspects the given entity classes and returns an {@link AiSchemaContext}.
+   *
+   * @param databaseDialect database dialect to include in the context (e.g., "PostgreSQL", "MySQL",
+   *     "Oracle", etc.)
+   * @param entityClasses one or more entity classes to expose to the AI
+   * @return context containing resolved schemas for all supplied classes
+   */
+  public static AiSchemaContext inspect(String databaseDialect, Class<?>... entityClasses) {
+    List<AiEntitySchema> schemas = new ArrayList<>();
+    for (Class<?> cls : entityClasses) {
+      schemas.add(inspectClass(cls));
+    }
+    return AiSchemaContext.of(schemas, databaseDialect);
+  }
+
+  /**
    * Inspects a single entity class and returns an {@link AiEntitySchema} containing the resolved
    * table name, field names, types, and any semantic metadata.
    *

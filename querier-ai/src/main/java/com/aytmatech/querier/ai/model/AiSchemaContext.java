@@ -11,20 +11,32 @@ import java.util.Optional;
  *
  * <p>Applications explicitly supply only the entity classes they want to expose — the AI cannot
  * reference tables or columns outside this context. This is the primary security boundary for
- * schema-scope restriction.
+ * schema-scope restriction. Also, we can include the database dialect in this context to be used by
+ * the AI.
  *
  * <p>Build using {@link AiSchemaInspector}:
  *
  * <pre>{@code
  * AiSchemaContext ctx = AiSchemaInspector.inspect(Customer.class, Order.class);
  * }</pre>
+ *
+ * <pre>{@code
+ * AiSchemaContext ctx = AiSchemaInspector.inspect("PostgreSQL", Customer.class, Order.class);
+ * }</pre>
  */
 public final class AiSchemaContext {
 
   private final List<AiEntitySchema> schemas;
+  private final String databaseDialect;
 
   private AiSchemaContext(List<AiEntitySchema> schemas) {
     this.schemas = Collections.unmodifiableList(new ArrayList<>(schemas));
+    this.databaseDialect = null;
+  }
+
+  private AiSchemaContext(List<AiEntitySchema> schemas, String databaseDialect) {
+    this.schemas = Collections.unmodifiableList(new ArrayList<>(schemas));
+    this.databaseDialect = databaseDialect;
   }
 
   /**
@@ -35,6 +47,20 @@ public final class AiSchemaContext {
    */
   public static AiSchemaContext of(List<AiEntitySchema> schemas) {
     return new AiSchemaContext(Objects.requireNonNull(schemas, "schemas"));
+  }
+
+  /**
+   * Creates a context containing the given schemas.
+   *
+   * @param schemas the entity schemas to include in this context
+   * @param databaseDialect the database dialect (e.g., "PostgreSQL", "MySQL", "Oracle", etc.) to
+   *     include in this context
+   * @return a new {@code AiSchemaContext} instance
+   */
+  public static AiSchemaContext of(List<AiEntitySchema> schemas, String databaseDialect) {
+    return new AiSchemaContext(
+        Objects.requireNonNull(schemas, "schemas"),
+        Objects.requireNonNull(databaseDialect, "databaseDialect"));
   }
 
   /**
@@ -80,6 +106,9 @@ public final class AiSchemaContext {
     for (AiEntitySchema schema : schemas) {
       sb.append(schema.toPromptText()).append('\n');
     }
+    sb.append("\nDatabase dialect: ")
+        .append(databaseDialect == null ? "unspecified" : databaseDialect)
+        .append('\n');
     return sb.toString();
   }
 }
