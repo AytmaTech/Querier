@@ -265,18 +265,18 @@ public class Select {
               NameResolver.resolve(columnRef, quoteStrategy);
           selectSqls.add(tableAndColumnName.tableName() + "." + tableAndColumnName.columnName());
         } else if (item instanceof Aggregate agg) {
-          Aggregate.Resolved r = agg.resolve(quoteStrategy, paramGen);
+          Resolved r = agg.resolve(quoteStrategy, paramGen);
           selectSqls.add(r.sql());
           allParams.putAll(r.params());
         } else if (item instanceof Expression expr) {
           selectSqls.add(expr.toSql());
           allParams.putAll(expr.getParams());
         } else if (item instanceof WindowFunction wf) {
-          WindowFunction.Resolved wfr = wf.resolve(quoteStrategy, paramGen);
+          Resolved wfr = wf.resolve(quoteStrategy, paramGen);
           selectSqls.add(wfr.sql());
           allParams.putAll(wfr.params());
         } else if (item instanceof CaseWhen caseWhen) {
-          CaseWhen.Resolved r = caseWhen.resolve(quoteStrategy, paramGen);
+          Resolved r = caseWhen.resolve(quoteStrategy, paramGen);
           selectSqls.add(r.sql());
           allParams.putAll(r.params());
         } else if (item instanceof DbFunction fn) {
@@ -305,14 +305,14 @@ public class Select {
         allParams.putAll(join.joinExpression.getParams());
       }
       if (join.condition != null) {
-        Condition.Resolved cr = join.condition.resolve(quoteStrategy, paramGen);
+        Resolved cr = join.condition.resolve(quoteStrategy, paramGen);
         sql.append(" ").append(SqlClause.ON.getSql()).append(" ").append(cr.sql());
         allParams.putAll(cr.params());
       }
     }
 
     if (whereCondition != null) {
-      Condition.Resolved cr = whereCondition.resolve(quoteStrategy, paramGen);
+      Resolved cr = whereCondition.resolve(quoteStrategy, paramGen);
       sql.append(" ").append(SqlClause.WHERE.getSql()).append(" ").append(cr.sql());
       allParams.putAll(cr.params());
     }
@@ -331,7 +331,7 @@ public class Select {
     }
 
     if (havingCondition != null) {
-      Condition.Resolved cr = havingCondition.resolve(quoteStrategy, paramGen);
+      Resolved cr = havingCondition.resolve(quoteStrategy, paramGen);
       sql.append(" ").append(SqlClause.HAVING.getSql()).append(" ").append(cr.sql());
       allParams.putAll(cr.params());
     }
@@ -339,7 +339,7 @@ public class Select {
     if (!orderByList.isEmpty()) {
       List<String> orderBySqls = new ArrayList<>();
       for (OrderBy ob : orderByList) {
-        OrderBy.Resolved r = ob.resolve(quoteStrategy, paramGen);
+        Resolved r = ob.resolve(quoteStrategy, paramGen);
         orderBySqls.add(r.sql());
         allParams.putAll(r.params());
       }
@@ -560,6 +560,28 @@ public class Select {
      */
     public <T, R> Builder select(ColumnRef<T, R> columnRef) {
       selectItems.add(columnRef);
+      return this;
+    }
+
+    /**
+     * Adds a SELECT column reference with alias.
+     *
+     * @param columnRef the column reference to select
+     * @param alias the alias for the selected column
+     * @param <T> The entity type
+     * @param <R> The return type
+     * @return this builder for chaining
+     */
+    public <T, R> Builder select(ColumnRef<T, R> columnRef, String alias) {
+      NameResolver.TableAndColumnName tableAndColumnName =
+          NameResolver.resolve(columnRef, quoteStrategy);
+      selectItems.add(
+          Expression.raw(
+              tableAndColumnName.tableName()
+                  + "."
+                  + tableAndColumnName.columnName()
+                  + " AS "
+                  + alias));
       return this;
     }
 

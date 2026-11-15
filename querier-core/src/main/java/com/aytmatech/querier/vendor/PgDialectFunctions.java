@@ -88,12 +88,11 @@ public final class PgDialectFunctions {
    */
   public static <T, R> DbFunction extract(String field, ColumnRef<T, R> col) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved(
-              "EXTRACT(" + field.toUpperCase() + " FROM " + colSql + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved(
+          "EXTRACT(" + field.toUpperCase() + " FROM " + colSql + ")", Map.of());
+    });
   }
 
   /**
@@ -641,11 +640,10 @@ public final class PgDialectFunctions {
    */
   public static <T, R> DbFunction cast(ColumnRef<T, R> col, String pgType) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved("CAST(" + colSql + " AS " + pgType + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved("CAST(" + colSql + " AS " + pgType + ")", Map.of());
+    });
   }
 
   /**

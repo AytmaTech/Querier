@@ -81,13 +81,12 @@ public final class MsSqlDialectFunctions {
    */
   public static <T, R> DbFunction dateAdd(String unit, Number amount, ColumnRef<T, R> col) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          String p = gen.next();
-          return new DbFunction.Resolved(
-              "DATEADD(" + unit.toLowerCase() + ", :" + p + ", " + colSql + ")", Map.of(p, amount));
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      String p = gen.next();
+      return new DbFunction.Resolved(
+          "DATEADD(" + unit.toLowerCase() + ", :" + p + ", " + colSql + ")", Map.of(p, amount));
+    });
   }
 
   /**
@@ -497,11 +496,10 @@ public final class MsSqlDialectFunctions {
    */
   public static <T, R> DbFunction cast(ColumnRef<T, R> col, String sqlServerType) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved("CAST(" + colSql + " AS " + sqlServerType + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved("CAST(" + colSql + " AS " + sqlServerType + ")", Map.of());
+    });
   }
 
   /**
@@ -516,12 +514,10 @@ public final class MsSqlDialectFunctions {
    */
   public static <T, R> DbFunction tryCast(ColumnRef<T, R> col, String sqlServerType) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved(
-              "TRY_CAST(" + colSql + " AS " + sqlServerType + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved("TRY_CAST(" + colSql + " AS " + sqlServerType + ")", Map.of());
+    });
   }
 
   /**
@@ -539,12 +535,11 @@ public final class MsSqlDialectFunctions {
    */
   public static <T, R> DbFunction convert(String sqlServerType, ColumnRef<T, R> col, int style) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom(
-        (strategy, gen) -> {
-          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-          return new DbFunction.Resolved(
-              "CONVERT(" + sqlServerType + ", " + colSql + ", " + style + ")", Map.of());
-        });
+    return DbFunction.custom((strategy, gen) -> {
+      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+      return new DbFunction.Resolved(
+          "CONVERT(" + sqlServerType + ", " + colSql + ", " + style + ")", Map.of());
+    });
   }
 
   /**

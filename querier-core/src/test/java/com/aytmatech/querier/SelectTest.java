@@ -22,6 +22,21 @@ class SelectTest {
   }
 
   @Test
+  void testBasicSelectWithAlias() {
+    Select select =
+        Select.builder()
+            .select(Order::getId, "order_id")
+            .select(Order::getTotal, "order_total")
+            .from(Order.class)
+            .build();
+
+    Select.SqlAndParams sp = select.toSqlAndParams();
+
+    assertEquals("SELECT orders.id AS order_id, orders.total AS order_total FROM orders", sp.sql());
+    assertTrue(sp.params().isEmpty());
+  }
+
+  @Test
   void testSelectAll() {
     Select select = Select.builder().from(Order.class).build();
 
