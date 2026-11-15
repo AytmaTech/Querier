@@ -44,16 +44,6 @@ public class OrderBy {
   }
 
   /**
-   * Holds a fully-resolved SQL fragment and its bound parameters.
-   *
-   * @param sql The fully-resolved SQL fragment for this ORDER BY item, with parameter placeholders
-   *     (e.g., ":paramName") if parameters are present
-   * @param params The map of parameter names to values that should be bound when executing the
-   *     query, with parameter names matching the placeholders in the SQL fragment
-   */
-  record Resolved(String sql, Map<String, Object> params) {}
-
-  /**
    * Creates an ascending ORDER BY clause.
    *
    * @param columnRef A method reference to a getter method for the column to order by (e.g.,
@@ -179,7 +169,7 @@ public class OrderBy {
    */
   Resolved resolve(QuoteStrategy quoteStrategy, ParamNameGenerator gen) {
     if (caseWhen != null) {
-      CaseWhen.Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
+      Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
       return new Resolved(cwResolved.sql() + " " + direction.getSql(), cwResolved.params());
     }
     if (dbFunction != null) {

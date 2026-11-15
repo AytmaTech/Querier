@@ -80,22 +80,22 @@ class QuerierAiRetryTest {
   /** A QueryPlan JSON that references an entity unknown to our schema (will fail validation). */
   private static final String INVALID_PLAN_JSON =
       """
-         {
-         "sql": "SELECT c.name, SUM(o.total) AS revenue FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.name ORDER BY revenue DESC LIMIT 10",
-         "ambiguous": false,
-         "ambiguityNote": null
-         }
-            """;
+      {
+      "sql": "SELECT c.name, SUM(o.total) AS revenue FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.name ORDER BY revenue DESC LIMIT 10",
+      "ambiguous": false,
+      "ambiguityNote": null
+      }
+      """;
 
   /** A QueryPlan JSON that is valid against the Customer schema. */
   private static final String VALID_PLAN_JSON =
       """
-         {
-         "sql": "SELECT c.name FROM customer c GROUP BY c.name ORDER BY revenue DESC LIMIT 10",
-         "ambiguous": false,
-         "ambiguityNote": null
-         }
-            """;
+      {
+      "sql": "SELECT c.name FROM customer c GROUP BY c.name ORDER BY revenue DESC LIMIT 10",
+      "ambiguous": false,
+      "ambiguityNote": null
+      }
+      """;
 
   private QueryRequest customerRequest() {
     return QueryRequest.builder()

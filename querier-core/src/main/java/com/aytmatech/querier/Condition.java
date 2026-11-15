@@ -18,23 +18,6 @@ public class Condition {
   private static final Pattern QUALIFIED_IDENTIFIER_PATTERN =
       Pattern.compile("\\b[a-zA-Z_][a-zA-Z0-9_]*(?:\\.[a-zA-Z_][a-zA-Z0-9_]*)+\\b");
 
-  /**
-   * Functional interface for lazily resolving a Condition to SQL and parameters. This allows for
-   * deferred resolution of column references and parameter names until the full query context is
-   * available, ensuring that all parameter names are unique and that quote strategies can be
-   * applied consistently across the entire query.
-   *
-   * @see ParamNameGenerator
-   * @see QuoteStrategy
-   */
-  @FunctionalInterface
-  interface Resolver {
-    Resolved resolve(QuoteStrategy quoteStrategy, ParamNameGenerator gen);
-  }
-
-  /** Holds a fully-resolved SQL fragment and its bound parameters. */
-  record Resolved(String sql, Map<String, Object> params) {}
-
   private final Resolver resolver;
 
   /** Lazy cache used by the backward-compatible {@code getSql()} / {@code getParams()} methods. */
@@ -955,7 +938,7 @@ public class Condition {
     return new Condition(
         (qs, gen) -> {
           String paramName = gen.next();
-          Aggregate.Resolved r = aggregate.resolve(qs, gen);
+          Resolved r = aggregate.resolve(qs, gen);
           String sql = r.sql() + " " + op.getSql() + " :" + paramName;
           Map<String, Object> params = new HashMap<>();
           params.put(paramName, value);

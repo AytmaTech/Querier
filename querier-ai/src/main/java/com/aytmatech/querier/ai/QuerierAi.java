@@ -69,85 +69,85 @@ public final class QuerierAi {
    */
   private static final String QUERY_SQL_SYSTEM_PROMPT =
       """
-          You are a SQL generation assistant for a Java application using a database.
+      You are a SQL generation assistant for a Java application using a database.
 
-          YOUR ONLY JOB: Write a single valid SQL SELECT statement that answers the user's question.
+      YOUR ONLY JOB: Write a single valid SQL SELECT statement that answers the user's question.
 
-          STRICT RULES — violating any rule will cause the query to fail:
-          1. Use ONLY the tables and columns listed in the "Available schema" section below.
-          2. NEVER invent table names or column names not listed in the schema.
-          3. Use the exact table names and column names from the schema (case-sensitive).
-          4. You MAY use table aliases (e.g. "orders o") but the actual table names must match the schema.
-          5. For date arithmetic, use standard SQL: current_date - interval '30 days'.
-          6. For window functions, CTEs, subqueries — write normal SQL.
-          7. ALWAYS return a JSON object in this exact format and nothing else:
-             {"sql": "<your complete SQL here>", "ambiguous": false, "ambiguityNote": null}
-          8. If the request cannot be answered with the available schema, set ambiguous=true.
-          9. No markdown, no code blocks, no explanation — ONLY the JSON object.
+      STRICT RULES — violating any rule will cause the query to fail:
+      1. Use ONLY the tables and columns listed in the "Available schema" section below.
+      2. NEVER invent table names or column names not listed in the schema.
+      3. Use the exact table names and column names from the schema (case-sensitive).
+      4. You MAY use table aliases (e.g. "orders o") but the actual table names must match the schema.
+      5. For date arithmetic, use standard SQL: current_date - interval '30 days'.
+      6. For window functions, CTEs, subqueries — write normal SQL.
+      7. ALWAYS return a JSON object in this exact format and nothing else:
+         {"sql": "<your complete SQL here>", "ambiguous": false, "ambiguityNote": null}
+      8. If the request cannot be answered with the available schema, set ambiguous=true.
+      9. No markdown, no code blocks, no explanation — ONLY the JSON object.
 
-          EXAMPLE RESPONSE:
-          {"sql": "SELECT c.name, SUM(o.total) AS revenue FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.name ORDER BY revenue DESC LIMIT 10", "ambiguous": false, "ambiguityNote": null}
-          """;
+      EXAMPLE RESPONSE:
+      {"sql": "SELECT c.name, SUM(o.total) AS revenue FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.name ORDER BY revenue DESC LIMIT 10", "ambiguous": false, "ambiguityNote": null}
+      """;
 
   private static final String QUERY_SQL_RESPONSE_JSON_SCHEMA =
       """
-          {
-            "type": "object",
-            "properties": {
-              "sql": {
-                "type": "string",
-                "description": "The complete SQL query generated to satisfy the user's request."
-              },
-              "ambiguous": {
-                "type": "boolean",
-                "description": "True if the user's request contains ambiguity that could affect the generated SQL; otherwise false."
-              },
-              "ambiguityNote": {
-                "type": ["string", "null"],
-                "description": "Explain the ambiguity when ambiguous is true. Return null when ambiguous is false."
-              }
-            },
-            "required": [
-              "sql",
-              "ambiguous",
-              "ambiguityNote"
-            ],
-            "additionalProperties": false
+      {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "The complete SQL query generated to satisfy the user's request."
+          },
+          "ambiguous": {
+            "type": "boolean",
+            "description": "True if the user's request contains ambiguity that could affect the generated SQL; otherwise false."
+          },
+          "ambiguityNote": {
+            "type": ["string", "null"],
+            "description": "Explain the ambiguity when ambiguous is true. Return null when ambiguous is false."
           }
-          """;
+        },
+        "required": [
+          "sql",
+          "ambiguous",
+          "ambiguityNote"
+        ],
+        "additionalProperties": false
+      }
+      """;
 
   /** System prompt for dashboard SQL generation. Each widget gets its own SQL query. */
   private static final String DASHBOARD_SQL_SYSTEM_PROMPT =
       """
-          You are a dashboard SQL generation assistant for a Java application.
+      You are a dashboard SQL generation assistant for a Java application.
 
-          YOUR JOB: Given a dashboard description, produce a JSON dashboard plan where each widget
-          has a SQL SELECT statement for its data.
+      YOUR JOB: Given a dashboard description, produce a JSON dashboard plan where each widget
+      has a SQL SELECT statement for its data.
 
-          STRICT RULES:
-          1. Use ONLY the tables and columns listed in the "Available schema" section below.
-          2. NEVER invent table names or column names.
-          3. Use exact table/column names from the schema.
-          4. Each widget's sql must be a complete, valid SELECT statement.
-          5. Choose chartType from: chartTypesArray.
-          6. Choose layout from: dashboardLayoutArray.
-          7. labelColumn is the column alias used as the X-axis / category label.
-          8. Return ONLY this JSON format, nothing else:
+      STRICT RULES:
+      1. Use ONLY the tables and columns listed in the "Available schema" section below.
+      2. NEVER invent table names or column names.
+      3. Use exact table/column names from the schema.
+      4. Each widget's sql must be a complete, valid SELECT statement.
+      5. Choose chartType from: chartTypesArray.
+      6. Choose layout from: dashboardLayoutArray.
+      7. labelColumn is the column alias used as the X-axis / category label.
+      8. Return ONLY this JSON format, nothing else:
+      {
+        "title": "Dashboard Title",
+        "layout": "GRID_2_COLS",
+        "widgets": [
           {
-            "title": "Dashboard Title",
-            "layout": "GRID_2_COLS",
-            "widgets": [
-              {
-                "title": "Widget Title",
-                "chartType": "BAR",
-                "labelColumn": "column_alias",
-                "sql": "SELECT ...",
-                "datasets": [{"column": "alias", "label": "Legend Label"}]
-              }
-            ]
+            "title": "Widget Title",
+            "chartType": "BAR",
+            "labelColumn": "column_alias",
+            "sql": "SELECT ...",
+            "datasets": [{"column": "alias", "label": "Legend Label"}]
           }
-          9. No markdown, no code blocks — ONLY the JSON object.
-          """
+        ]
+      }
+      9. No markdown, no code blocks — ONLY the JSON object.
+      """
           .replace(
               "chartTypesArray",
               Arrays.stream(ChartType.values())
@@ -161,83 +161,83 @@ public final class QuerierAi {
 
   private static final String DASHBOARD_SQL_RESPONSE_JSON_SCHEMA =
       """
-                  {
+      {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The title of the dashboard."
+          },
+          "layout": {
+            "type": "string",
+            "enum": dashboardLayoutArray,
+            "description": "The layout used to arrange dashboard widgets."
+          },
+          "widgets": {
+            "type": "array",
+            "description": "The charts displayed on the dashboard.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "description": "The title of the chart widget."
+                },
+                "chartType": {
+                  "type": "string",
+                  "enum": chartTypesArray,
+                  "description": "The chart visualization type (chartjs compatible)."
+                },
+                "labelColumn": {
+                  "type": "string",
+                  "description": "The SQL result column alias used for category labels or the primary label dimension of the chart."
+                },
+                "sql": {
+                  "type": "string",
+                  "description": "The complete SQL SELECT query used to retrieve the data for this chart."
+                },
+                "datasets": {
+                  "type": "array",
+                  "description": "The data series to display, referencing strictly column aliases returned by the SQL query.",
+                  "items": {
                     "type": "object",
                     "properties": {
-                      "title": {
+                      "column": {
                         "type": "string",
-                        "description": "The title of the dashboard."
+                        "description": "The SQL result column alias containing the dataset values."
                       },
-                      "layout": {
+                      "label": {
                         "type": "string",
-                        "enum": dashboardLayoutArray,
-                        "description": "The layout used to arrange dashboard widgets."
-                      },
-                      "widgets": {
-                        "type": "array",
-                        "description": "The charts displayed on the dashboard.",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "title": {
-                              "type": "string",
-                              "description": "The title of the chart widget."
-                            },
-                            "chartType": {
-                              "type": "string",
-                              "enum": chartTypesArray,
-                              "description": "The chart visualization type (chartjs compatible)."
-                            },
-                            "labelColumn": {
-                              "type": "string",
-                              "description": "The SQL result column alias used for category labels or the primary label dimension of the chart."
-                            },
-                            "sql": {
-                              "type": "string",
-                              "description": "The complete SQL SELECT query used to retrieve the data for this chart."
-                            },
-                            "datasets": {
-                              "type": "array",
-                              "description": "The data series to display, referencing strictly column aliases returned by the SQL query.",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "column": {
-                                    "type": "string",
-                                    "description": "The SQL result column alias containing the dataset values."
-                                  },
-                                  "label": {
-                                    "type": "string",
-                                    "description": "The human-readable label used to identify this dataset in the chart legend."
-                                  }
-                                },
-                                "required": [
-                                  "column",
-                                  "label"
-                                ],
-                                "additionalProperties": false
-                              }
-                            }
-                          },
-                          "required": [
-                            "title",
-                            "chartType",
-                            "labelColumn",
-                            "sql",
-                            "datasets"
-                          ],
-                          "additionalProperties": false
-                        }
+                        "description": "The human-readable label used to identify this dataset in the chart legend."
                       }
                     },
                     "required": [
-                      "title",
-                      "layout",
-                      "widgets"
+                      "column",
+                      "label"
                     ],
                     "additionalProperties": false
                   }
-                  """
+                }
+              },
+              "required": [
+                "title",
+                "chartType",
+                "labelColumn",
+                "sql",
+                "datasets"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "title",
+          "layout",
+          "widgets"
+        ],
+        "additionalProperties": false
+      }
+      """
           .replace(
               "dashboardLayoutArray",
               Arrays.stream(DashboardLayout.values())

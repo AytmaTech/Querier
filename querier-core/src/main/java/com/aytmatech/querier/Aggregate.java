@@ -33,9 +33,6 @@ public class Aggregate {
     this.caseWhen = caseWhen;
   }
 
-  /** Holds a fully-resolved SQL fragment and its bound parameters. */
-  record Resolved(String sql, Map<String, Object> params) {}
-
   /**
    * COUNT(column)
    *
@@ -268,7 +265,7 @@ public class Aggregate {
    */
   Resolved resolve(QuoteStrategy quoteStrategy, ParamNameGenerator gen) {
     if (caseWhen != null) {
-      CaseWhen.Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
+      Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
       String innerSql =
           function == AggregateFunction.COUNT_DISTINCT
               ? SqlClause.DISTINCT.getSql() + " " + cwResolved.sql()
@@ -285,7 +282,7 @@ public class Aggregate {
 
   Resolved resolveWithoutAlias(QuoteStrategy quoteStrategy, ParamNameGenerator gen) {
     if (caseWhen != null) {
-      CaseWhen.Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
+      Resolved cwResolved = caseWhen.resolveWithoutAlias(quoteStrategy, gen);
       String innerSql =
           function == AggregateFunction.COUNT_DISTINCT
               ? SqlClause.DISTINCT.getSql() + " " + cwResolved.sql()
