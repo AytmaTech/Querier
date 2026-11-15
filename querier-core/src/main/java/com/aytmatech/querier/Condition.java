@@ -169,17 +169,18 @@ public class Condition {
    */
   public static <T, R> Condition eq(Expression expression, ColumnRef<T, R> columnRef) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      String sql =
-          expression.getSql()
-              + " "
-              + SqlOperator.EQ.getSql()
-              + " "
-              + qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName());
-      return new Resolved(sql, new HashMap<>());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String sql =
+              expression.getSql()
+                  + " "
+                  + SqlOperator.EQ.getSql()
+                  + " "
+                  + qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName());
+          return new Resolved(sql, new HashMap<>());
+        });
   }
 
   /**
@@ -192,11 +193,12 @@ public class Condition {
    *     conditions where two computed expressions are compared for equality.
    */
   public static Condition eq(Expression expression1, Expression expression2) {
-    return new Condition((qs, gen) -> {
-      String sql =
-          expression1.getSql() + " " + SqlOperator.EQ.getSql() + " " + expression2.getSql();
-      return new Resolved(sql, new HashMap<>());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String sql =
+              expression1.getSql() + " " + SqlOperator.EQ.getSql() + " " + expression2.getSql();
+          return new Resolved(sql, new HashMap<>());
+        });
   }
 
   /**
@@ -583,26 +585,27 @@ public class Condition {
    */
   public static <T, R> Condition between(ColumnRef<T, R> columnRef, Object min, Object max) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      String p1 = gen.next();
-      String p2 = gen.next();
-      String sql =
-          qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName())
-              + " "
-              + SqlOperator.BETWEEN.getSql()
-              + " :"
-              + p1
-              + " "
-              + SqlOperator.AND.getSql()
-              + " :"
-              + p2;
-      Map<String, Object> params = new HashMap<>();
-      params.put(p1, min);
-      params.put(p2, max);
-      return new Resolved(sql, params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String p1 = gen.next();
+          String p2 = gen.next();
+          String sql =
+              qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName())
+                  + " "
+                  + SqlOperator.BETWEEN.getSql()
+                  + " :"
+                  + p1
+                  + " "
+                  + SqlOperator.AND.getSql()
+                  + " :"
+                  + p2;
+          Map<String, Object> params = new HashMap<>();
+          params.put(p1, min);
+          params.put(p2, max);
+          return new Resolved(sql, params);
+        });
   }
 
   /**
@@ -616,11 +619,12 @@ public class Condition {
    *     there exists an order with a certain condition".
    */
   public static Condition exists(Select subquery) {
-    return new Condition((qs, gen) -> {
-      Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
-      return new Resolved(
-          SqlOperator.EXISTS.getSql() + " (" + sp.sql() + ")", new HashMap<>(sp.params()));
-    });
+    return new Condition(
+        (qs, gen) -> {
+          Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
+          return new Resolved(
+              SqlOperator.EXISTS.getSql() + " (" + sp.sql() + ")", new HashMap<>(sp.params()));
+        });
   }
 
   /**
@@ -644,18 +648,19 @@ public class Condition {
     if (conditions.length == 1) {
       return conditions[0];
     }
-    return new Condition((qs, gen) -> {
-      StringBuilder sql = new StringBuilder("(");
-      Map<String, Object> allParams = new HashMap<>();
-      for (int i = 0; i < conditions.length; i++) {
-        if (i > 0) sql.append(" ").append(SqlOperator.AND.getSql()).append(" ");
-        Resolved r = conditions[i].resolve(qs, gen);
-        sql.append(r.sql());
-        allParams.putAll(r.params());
-      }
-      sql.append(")");
-      return new Resolved(sql.toString(), allParams);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          StringBuilder sql = new StringBuilder("(");
+          Map<String, Object> allParams = new HashMap<>();
+          for (int i = 0; i < conditions.length; i++) {
+            if (i > 0) sql.append(" ").append(SqlOperator.AND.getSql()).append(" ");
+            Resolved r = conditions[i].resolve(qs, gen);
+            sql.append(r.sql());
+            allParams.putAll(r.params());
+          }
+          sql.append(")");
+          return new Resolved(sql.toString(), allParams);
+        });
   }
 
   /**
@@ -679,18 +684,19 @@ public class Condition {
     if (conditions.length == 1) {
       return conditions[0];
     }
-    return new Condition((qs, gen) -> {
-      StringBuilder sql = new StringBuilder("(");
-      Map<String, Object> allParams = new HashMap<>();
-      for (int i = 0; i < conditions.length; i++) {
-        if (i > 0) sql.append(" ").append(SqlOperator.OR.getSql()).append(" ");
-        Resolved r = conditions[i].resolve(qs, gen);
-        sql.append(r.sql());
-        allParams.putAll(r.params());
-      }
-      sql.append(")");
-      return new Resolved(sql.toString(), allParams);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          StringBuilder sql = new StringBuilder("(");
+          Map<String, Object> allParams = new HashMap<>();
+          for (int i = 0; i < conditions.length; i++) {
+            if (i > 0) sql.append(" ").append(SqlOperator.OR.getSql()).append(" ");
+            Resolved r = conditions[i].resolve(qs, gen);
+            sql.append(r.sql());
+            allParams.putAll(r.params());
+          }
+          sql.append(")");
+          return new Resolved(sql.toString(), allParams);
+        });
   }
 
   /**
@@ -703,10 +709,11 @@ public class Condition {
    *     where a column's value is not greater than a specific threshold.
    */
   public static Condition not(Condition condition) {
-    return new Condition((qs, gen) -> {
-      Resolved r = condition.resolve(qs, gen);
-      return new Resolved(SqlOperator.NOT.getSql() + " (" + r.sql() + ")", r.params());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          Resolved r = condition.resolve(qs, gen);
+          return new Resolved(SqlOperator.NOT.getSql() + " (" + r.sql() + ")", r.params());
+        });
   }
 
   /**
@@ -726,19 +733,20 @@ public class Condition {
   private static <T, R> Condition columnSubqueryCondition(
       ColumnRef<T, R> columnRef, SqlOperator op, Select subquery) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
-      String sql =
-          qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName())
-              + " "
-              + op.getSql()
-              + " ("
-              + sp.sql()
-              + ")";
-      return new Resolved(sql, new HashMap<>(sp.params()));
-    });
+    return new Condition(
+        (qs, gen) -> {
+          Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
+          String sql =
+              qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName())
+                  + " "
+                  + op.getSql()
+                  + " ("
+                  + sp.sql()
+                  + ")";
+          return new Resolved(sql, new HashMap<>(sp.params()));
+        });
   }
 
   /**
@@ -758,18 +766,19 @@ public class Condition {
   private static <T, R> Condition columnValueCondition(
       ColumnRef<T, R> columnRef, SqlOperator op, Object value) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      String paramName = gen.next();
-      String sql =
-          qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName())
-              + " "
-              + op.getSql()
-              + " :"
-              + paramName;
-      return new Resolved(sql, Map.of(paramName, value));
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String paramName = gen.next();
+          String sql =
+              qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName())
+                  + " "
+                  + op.getSql()
+                  + " :"
+                  + paramName;
+          return new Resolved(sql, Map.of(paramName, value));
+        });
   }
 
   /**
@@ -792,19 +801,20 @@ public class Condition {
       ColumnRef<T1, R1> columnRef1, SqlOperator op, ColumnRef<T2, R2> columnRef2) {
     NameResolver.TableAndColumnName tableAndColumnName1 = NameResolver.resolve(columnRef1);
     NameResolver.TableAndColumnName tableAndColumnName2 = NameResolver.resolve(columnRef2);
-    return new Condition((qs, gen) -> {
-      String sql =
-          qs.quoteQualified(tableAndColumnName1.tableName())
-              + "."
-              + qs.quote(tableAndColumnName1.columnName())
-              + " "
-              + op.getSql()
-              + " "
-              + qs.quoteQualified(tableAndColumnName2.tableName())
-              + "."
-              + qs.quote(tableAndColumnName2.columnName());
-      return new Resolved(sql, new HashMap<>());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String sql =
+              qs.quoteQualified(tableAndColumnName1.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName1.columnName())
+                  + " "
+                  + op.getSql()
+                  + " "
+                  + qs.quoteQualified(tableAndColumnName2.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName2.columnName());
+          return new Resolved(sql, new HashMap<>());
+        });
   }
 
   /**
@@ -824,19 +834,20 @@ public class Condition {
   private static <T, R> Condition columnCollectionCondition(
       ColumnRef<T, R> columnRef, SqlOperator op, Collection<?> values) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      String paramName = gen.next();
-      String sql =
-          qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName())
-              + " "
-              + op.getSql()
-              + " (:"
-              + paramName
-              + ")";
-      return new Resolved(sql, Map.of(paramName, values));
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String paramName = gen.next();
+          String sql =
+              qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName())
+                  + " "
+                  + op.getSql()
+                  + " (:"
+                  + paramName
+                  + ")";
+          return new Resolved(sql, Map.of(paramName, values));
+        });
   }
 
   /**
@@ -853,13 +864,14 @@ public class Condition {
    */
   private static Condition columnCollectionCondition(
       Expression expression, SqlOperator op, Collection<?> values) {
-    return new Condition((qs, gen) -> {
-      String paramName = gen.next();
-      Map<String, Object> params = new HashMap<>(expression.getParams());
-      params.put(paramName, values);
-      return new Resolved(
-          expression.getSql() + " " + op.getSql() + " (:" + paramName + ")", params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String paramName = gen.next();
+          Map<String, Object> params = new HashMap<>(expression.getParams());
+          params.put(paramName, values);
+          return new Resolved(
+              expression.getSql() + " " + op.getSql() + " (:" + paramName + ")", params);
+        });
   }
 
   /**
@@ -877,12 +889,14 @@ public class Condition {
    */
   private static Condition columnSubqueryCondition(
       Expression expression, SqlOperator op, Select subquery) {
-    return new Condition((qs, gen) -> {
-      Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
-      Map<String, Object> params = new HashMap<>(expression.getParams());
-      params.putAll(sp.params());
-      return new Resolved(expression.getSql() + " " + op.getSql() + " (" + sp.sql() + ")", params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          Select.SqlAndParams sp = subquery.toSqlAndParams(gen);
+          Map<String, Object> params = new HashMap<>(expression.getParams());
+          params.putAll(sp.params());
+          return new Resolved(
+              expression.getSql() + " " + op.getSql() + " (" + sp.sql() + ")", params);
+        });
   }
 
   /**
@@ -899,12 +913,13 @@ public class Condition {
    */
   private static Condition columnValueCondition(
       Expression expression, SqlOperator op, Object value) {
-    return new Condition((qs, gen) -> {
-      String paramName = gen.next();
-      Map<String, Object> params = new HashMap<>(expression.getParams());
-      params.put(paramName, value);
-      return new Resolved(expression.getSql() + " " + op.getSql() + " :" + paramName, params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String paramName = gen.next();
+          Map<String, Object> params = new HashMap<>(expression.getParams());
+          params.put(paramName, value);
+          return new Resolved(expression.getSql() + " " + op.getSql() + " :" + paramName, params);
+        });
   }
 
   /**
@@ -920,15 +935,16 @@ public class Condition {
    *     as "=", "!=", ">", "<", ">=", "<=", etc.
    */
   private static Condition columnValueCondition(Aggregate aggregate, SqlOperator op, Object value) {
-    return new Condition((qs, gen) -> {
-      String paramName = gen.next();
-      Resolved r = aggregate.resolve(qs, gen);
-      String sql = r.sql() + " " + op.getSql() + " :" + paramName;
-      Map<String, Object> params = new HashMap<>();
-      params.put(paramName, value);
-      params.putAll(r.params());
-      return new Resolved(sql, params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String paramName = gen.next();
+          Resolved r = aggregate.resolve(qs, gen);
+          String sql = r.sql() + " " + op.getSql() + " :" + paramName;
+          Map<String, Object> params = new HashMap<>();
+          params.put(paramName, value);
+          params.putAll(r.params());
+          return new Resolved(sql, params);
+        });
   }
 
   /**
@@ -947,15 +963,16 @@ public class Condition {
   private static <T, R> Condition columnSubqueryCondition(
       ColumnRef<T, R> columnRef, SqlOperator op) {
     NameResolver.TableAndColumnName tableAndColumnName = NameResolver.resolve(columnRef);
-    return new Condition((qs, gen) -> {
-      String sql =
-          qs.quoteQualified(tableAndColumnName.tableName())
-              + "."
-              + qs.quote(tableAndColumnName.columnName())
-              + " "
-              + op.getSql();
-      return new Resolved(sql, new HashMap<>());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          String sql =
+              qs.quoteQualified(tableAndColumnName.tableName())
+                  + "."
+                  + qs.quote(tableAndColumnName.columnName())
+                  + " "
+                  + op.getSql();
+          return new Resolved(sql, new HashMap<>());
+        });
   }
 
   /**
@@ -1053,10 +1070,11 @@ public class Condition {
    * @return a Condition representing the SQL condition "dbFunction IS NULL"
    */
   public static Condition isNull(DbFunction fn) {
-    return new Condition((qs, gen) -> {
-      DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
-      return new Resolved(r.sql() + " " + SqlOperator.IS_NULL.getSql(), r.params());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          return new Resolved(r.sql() + " " + SqlOperator.IS_NULL.getSql(), r.params());
+        });
   }
 
   /**
@@ -1067,10 +1085,11 @@ public class Condition {
    * @return a Condition representing the SQL condition "dbFunction IS NOT NULL"
    */
   public static Condition isNotNull(DbFunction fn) {
-    return new Condition((qs, gen) -> {
-      DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
-      return new Resolved(r.sql() + " " + SqlOperator.IS_NOT_NULL.getSql(), r.params());
-    });
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          return new Resolved(r.sql() + " " + SqlOperator.IS_NOT_NULL.getSql(), r.params());
+        });
   }
 
   /**
@@ -1086,25 +1105,26 @@ public class Condition {
    * @return a Condition representing the SQL condition "dbFunction BETWEEN :min AND :max"
    */
   public static Condition between(DbFunction fn, Object min, Object max) {
-    return new Condition((qs, gen) -> {
-      DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
-      String p1 = gen.next();
-      String p2 = gen.next();
-      Map<String, Object> params = new HashMap<>(r.params());
-      params.put(p1, min);
-      params.put(p2, max);
-      return new Resolved(
-          r.sql()
-              + " "
-              + SqlOperator.BETWEEN.getSql()
-              + " :"
-              + p1
-              + " "
-              + SqlOperator.AND.getSql()
-              + " :"
-              + p2,
-          params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p1 = gen.next();
+          String p2 = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p1, min);
+          params.put(p2, max);
+          return new Resolved(
+              r.sql()
+                  + " "
+                  + SqlOperator.BETWEEN.getSql()
+                  + " :"
+                  + p1
+                  + " "
+                  + SqlOperator.AND.getSql()
+                  + " :"
+                  + p2,
+              params);
+        });
   }
 
   /**
@@ -1120,13 +1140,14 @@ public class Condition {
    * @return a Condition representing the SQL condition "dbFunction IN (:param1, :param2, ...)"
    */
   public static Condition in(DbFunction fn, Collection<?> values) {
-    return new Condition((qs, gen) -> {
-      DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
-      String p = gen.next();
-      Map<String, Object> params = new HashMap<>(r.params());
-      params.put(p, values);
-      return new Resolved(r.sql() + " " + SqlOperator.IN.getSql() + " (:" + p + ")", params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p, values);
+          return new Resolved(r.sql() + " " + SqlOperator.IN.getSql() + " (:" + p + ")", params);
+        });
   }
 
   /**
@@ -1138,12 +1159,13 @@ public class Condition {
    * @return a Condition representing the SQL condition "dbFunction OP :param"
    */
   private static Condition dbFunctionValueCondition(DbFunction fn, SqlOperator op, Object value) {
-    return new Condition((qs, gen) -> {
-      DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
-      String p = gen.next();
-      Map<String, Object> params = new HashMap<>(r.params());
-      params.put(p, value);
-      return new Resolved(r.sql() + " " + op.getSql() + " :" + p, params);
-    });
+    return new Condition(
+        (qs, gen) -> {
+          DbFunction.Resolved r = fn.resolveWithoutAlias(qs, gen);
+          String p = gen.next();
+          Map<String, Object> params = new HashMap<>(r.params());
+          params.put(p, value);
+          return new Resolved(r.sql() + " " + op.getSql() + " :" + p, params);
+        });
   }
 }

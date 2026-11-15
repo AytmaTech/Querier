@@ -156,11 +156,12 @@ public final class OracleDialectFunctions {
    */
   public static <T, R> DbFunction extract(String field, ColumnRef<T, R> col) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom((strategy, gen) -> {
-      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-      return new DbFunction.Resolved(
-          "EXTRACT(" + field.toUpperCase() + " FROM " + colSql + ")", Map.of());
-    });
+    return DbFunction.custom(
+        (strategy, gen) -> {
+          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+          return new DbFunction.Resolved(
+              "EXTRACT(" + field.toUpperCase() + " FROM " + colSql + ")", Map.of());
+        });
   }
 
   /**
@@ -485,24 +486,25 @@ public final class OracleDialectFunctions {
       ColumnRef<T1, R1> col, String separator, ColumnRef<T2, R2> orderCol, boolean ascending) {
     NameResolver.TableAndColumnName colTcn = NameResolver.resolve(col);
     NameResolver.TableAndColumnName orderTcn = NameResolver.resolve(orderCol);
-    return DbFunction.custom((strategy, gen) -> {
-      String colSql =
-          strategy.quote(colTcn.tableName()) + "." + strategy.quote(colTcn.columnName());
-      String orderSql =
-          strategy.quote(orderTcn.tableName()) + "." + strategy.quote(orderTcn.columnName());
-      String direction = ascending ? "ASC" : "DESC";
-      return new DbFunction.Resolved(
-          "LISTAGG("
-              + colSql
-              + ", '"
-              + separator.replace("'", "''")
-              + "') WITHIN GROUP (ORDER BY "
-              + orderSql
-              + " "
-              + direction
-              + ")",
-          Map.of());
-    });
+    return DbFunction.custom(
+        (strategy, gen) -> {
+          String colSql =
+              strategy.quote(colTcn.tableName()) + "." + strategy.quote(colTcn.columnName());
+          String orderSql =
+              strategy.quote(orderTcn.tableName()) + "." + strategy.quote(orderTcn.columnName());
+          String direction = ascending ? "ASC" : "DESC";
+          return new DbFunction.Resolved(
+              "LISTAGG("
+                  + colSql
+                  + ", '"
+                  + separator.replace("'", "''")
+                  + "') WITHIN GROUP (ORDER BY "
+                  + orderSql
+                  + " "
+                  + direction
+                  + ")",
+              Map.of());
+        });
   }
 
   /**
@@ -694,18 +696,19 @@ public final class OracleDialectFunctions {
   public static <T, R> DbFunction decode(
       ColumnRef<T, R> col, Object... searchResultPairsAndDefault) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom((strategy, gen) -> {
-      Map<String, Object> params = new LinkedHashMap<>();
-      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-      StringBuilder sb = new StringBuilder("DECODE(").append(colSql);
-      for (Object arg : searchResultPairsAndDefault) {
-        String p = gen.next();
-        sb.append(", :").append(p);
-        params.put(p, arg);
-      }
-      sb.append(")");
-      return new DbFunction.Resolved(sb.toString(), Map.copyOf(params));
-    });
+    return DbFunction.custom(
+        (strategy, gen) -> {
+          Map<String, Object> params = new LinkedHashMap<>();
+          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+          StringBuilder sb = new StringBuilder("DECODE(").append(colSql);
+          for (Object arg : searchResultPairsAndDefault) {
+            String p = gen.next();
+            sb.append(", :").append(p);
+            params.put(p, arg);
+          }
+          sb.append(")");
+          return new DbFunction.Resolved(sb.toString(), Map.copyOf(params));
+        });
   }
 
   /**
@@ -753,10 +756,11 @@ public final class OracleDialectFunctions {
    */
   public static <T, R> DbFunction cast(ColumnRef<T, R> col, String oracleType) {
     NameResolver.TableAndColumnName tcn = NameResolver.resolve(col);
-    return DbFunction.custom((strategy, gen) -> {
-      String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
-      return new DbFunction.Resolved("CAST(" + colSql + " AS " + oracleType + ")", Map.of());
-    });
+    return DbFunction.custom(
+        (strategy, gen) -> {
+          String colSql = strategy.quote(tcn.tableName()) + "." + strategy.quote(tcn.columnName());
+          return new DbFunction.Resolved("CAST(" + colSql + " AS " + oracleType + ")", Map.of());
+        });
   }
 
   /**

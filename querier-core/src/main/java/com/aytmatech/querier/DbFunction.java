@@ -233,17 +233,18 @@ public final class DbFunction {
    */
   public static DbFunction of(String name, List<Arg> args, String suffix) {
     List<Arg> immutableArgs = List.copyOf(args);
-    return new DbFunction((strategy, gen) -> {
-      StringBuilder sb = new StringBuilder(name).append("(");
-      Map<String, Object> params = new LinkedHashMap<>();
-      for (int i = 0; i < immutableArgs.size(); i++) {
-        if (i > 0) sb.append(", ");
-        appendArg(immutableArgs.get(i), sb, params, strategy, gen);
-      }
-      sb.append(")");
-      if (suffix != null) sb.append(suffix);
-      return new Resolved(sb.toString(), Collections.unmodifiableMap(params));
-    });
+    return new DbFunction(
+        (strategy, gen) -> {
+          StringBuilder sb = new StringBuilder(name).append("(");
+          Map<String, Object> params = new LinkedHashMap<>();
+          for (int i = 0; i < immutableArgs.size(); i++) {
+            if (i > 0) sb.append(", ");
+            appendArg(immutableArgs.get(i), sb, params, strategy, gen);
+          }
+          sb.append(")");
+          if (suffix != null) sb.append(suffix);
+          return new Resolved(sb.toString(), Collections.unmodifiableMap(params));
+        });
   }
 
   /**

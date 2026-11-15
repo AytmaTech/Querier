@@ -153,10 +153,11 @@ class QuerierAiRetryTest {
     AiRequest correctionRequest = stub.requestAt(1);
     boolean issuesMentioned =
         correctionRequest.messages().stream()
-            .anyMatch(m ->
-                m.content().contains("UnknownEntity")
-                    || m.content().contains("unknown")
-                    || m.content().contains("Validation issues"));
+            .anyMatch(
+                m ->
+                    m.content().contains("UnknownEntity")
+                        || m.content().contains("unknown")
+                        || m.content().contains("Validation issues"));
     assertTrue(issuesMentioned, "Correction request should contain the original validation issues");
   }
 
