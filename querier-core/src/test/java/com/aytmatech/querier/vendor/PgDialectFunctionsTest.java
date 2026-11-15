@@ -5,9 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.aytmatech.querier.*;
 import com.aytmatech.querier.model.Order;
-import com.aytmatech.querier.model.OrderStatus;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 class PgDialectFunctionsTest {
@@ -239,36 +237,5 @@ class PgDialectFunctionsTest {
     assertTrue(sp.params().containsKey("param2"));
     assertTrue(sp.params().containsKey("param3"));
     assertEquals(4, sp.params().size());
-  }
-
-  @Test
-  void test() {
-    var select =
-        Select.builder()
-            .select(Order::getCustomerId)
-            .select(dateTrunc("month", Order::getCreatedAt).as("month"))
-            .select(Aggregate.sum(Order::getTotal).as("revenue"))
-            .select(
-                WindowFunction.of(lag(Order::getTotal, 1, BigDecimal.ZERO))
-                    .partitionBy(Order::getCustomerId)
-                    .orderBy(OrderBy.asc(Order::getCreatedAt))
-                    .as("prev_month"))
-            .select(
-                CaseWhen.builder()
-                    .when(Condition.eq(Order::getStatus, OrderStatus.PAID), "Completed")
-                    .when(Condition.eq(Order::getStatus, OrderStatus.SHIPPED), "In Transit")
-                    .orElse("Pending")
-                    .as("status_label"))
-            .from(Order.class)
-            .where(Condition.gte(dateTrunc("month", Order::getCreatedAt), LocalDateTime.now()))
-            .groupBy(Order::getCustomerId)
-            .groupBy(Order::getTotal)
-            .groupBy(Order::getCreatedAt)
-            .groupBy(Order::getStatus)
-            .orderBy(OrderBy.asc(dateTrunc("month", Order::getCreatedAt)))
-            .quoteStrategy(QuoteStrategy.ANSI)
-            .build();
-
-    System.out.println(select.toPlainSql());
   }
 }
