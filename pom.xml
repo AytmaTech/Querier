@@ -47,7 +47,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
         <junit.version>5.11.4</junit.version>
-        <jackson-databind.version>2.22.4</jackson-databind.version>
+        <jackson-databind.version>2.23.0</jackson-databind.version>
     </properties>
 
     <dependencyManagement>
@@ -112,7 +112,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.7.0</version>
                 <executions>
                     <execution>
                         <id>enforce-requirements</id>
@@ -143,7 +143,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>3.10.4</version>
+                <version>3.11.0</version>
                 <configuration>
                     <java>
                         <googleJavaFormat>
@@ -167,6 +167,9 @@
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>4.10.5.0</version>
+                <configuration>
+                    <effort>Max</effort>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
