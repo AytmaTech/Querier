@@ -75,6 +75,14 @@ class AiSchemaContextTest {
   }
 
   @Test
+  void toPromptText_containsTableNameAndDialect() {
+    AiSchemaContext ctx = AiSchemaInspector.inspect("PostgreSQL", Product.class);
+    String promptText = ctx.toPromptText();
+    assertTrue(promptText.contains("products"));
+    assertTrue(promptText.contains("PostgreSQL"));
+  }
+
+  @Test
   void toPromptText_multipleEntities_allIncluded() {
     AiSchemaContext ctx = twoEntityContext();
     String text = ctx.toPromptText();
